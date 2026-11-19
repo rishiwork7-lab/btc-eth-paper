@@ -1,0 +1,10 @@
+# runtime state and caches stay local (the cloud keeps its own on the 'state' branch)
+data/
+advisor/
+site/
+backtest/*_1m.json
+backtest/engine/
+__pycache__/
+.pytest_cache/
+*.log
+.DS_Store

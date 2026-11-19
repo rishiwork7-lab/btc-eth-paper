@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC & ETH Paper Portfolio</title>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root{color-scheme:light;--bg:#f7f8fb;--card:#ffffff;--ink:#14171c;--mute:#5f6875;--line:#e3e7ee;--up:#0b8a4a;--down:#cc2b22;--accent:#1f5eea;--warn:#a35a00;--chip:#eaf0ff;--opt:#7a3ff2;--optchip:#f1eaff;--fut:#0b7d8a;--futchip:#e3f6f7}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:1320px;margin:0 auto;padding:16px}a{color:var(--accent)}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:12px}h1{font-size:21px;margin:0}h2{font-size:15px;margin:0 0 10px}
+h3{font-size:18px;margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+.badge{background:var(--chip);color:var(--accent);border-radius:999px;padding:2px 10px;font-weight:600;font-size:12px}
+.badge.opt{background:var(--optchip);color:var(--opt)}.badge.fut{background:var(--futchip);color:var(--fut)}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}nav a{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 14px;text-decoration:none;font-weight:500}
+nav a.on{border-color:var(--accent);background:var(--chip);color:var(--accent);font-weight:600}
+.note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:10px 14px;margin-bottom:14px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px;margin-bottom:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}.tile>span{display:block;color:var(--mute);font-size:12px}
+.tile b{display:block;font-size:20px;margin:2px 0}.tile i{font-style:normal;color:var(--mute);font-size:12px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.panel.opt{border-top:3px solid var(--opt)}.panel.fut{border-top:3px solid var(--fut)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(400px,1fr));gap:14px}.grid2>*{min-width:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:14px}
+.card{display:block;text-decoration:none;color:var(--ink)}.card:hover{border-color:var(--accent)}.card p{margin:4px 0;color:var(--mute)}.go{color:var(--accent);font-weight:600;margin-top:8px}
+.seg{display:flex;gap:6px;margin-bottom:12px}.seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit}
+.seg button.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+th{color:var(--mute);font-weight:500;font-size:12px}td.l,th.l{text-align:left}.scroll{overflow:auto;max-height:420px}.wide{overflow-x:auto}
+.up{color:var(--up)}.down{color:var(--down)}.mute{color:var(--mute)}.warn{color:var(--warn)}svg{display:block;width:100%}.empty{color:var(--mute);padding:8px 0}
+ul{margin:6px 0;padding-left:20px}li{margin:3px 0}
+.chart{height:400px;width:100%;margin:6px 0}.ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+.ctl select,.ctl button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 10px;font:inherit;cursor:pointer}
+.ctl button.on{border-color:var(--accent);color:var(--accent);font-weight:600}.key{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--mute)}
+.key i{display:inline-block;width:18px;height:0;border-top:2px dashed;vertical-align:middle;margin-right:4px}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}main{padding:12px}}
+</style>
+</head>
+<body>
+<main>
+<header><h1 id="h1">BTC & ETH paper portfolio</h1><span class="badge">PAPER · BTC & ETH only · one $10,000 account · 2×</span></header>
+<nav id="nav"></nav>
+<div class="note" id="note"></div>
+<div id="charts"></div>
+<div id="body"><div class="empty">Loading…</div></div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const n = (x, d = 2) => x == null || isNaN(x) ? "–" : Number(x).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const usd = (x, d = 2) => x == null || isNaN(x) ? "–" : (x < 0 ? "−$" : "$") + n(Math.abs(x), d);
+const pct = (x, d = 1) => x == null ? "–" : (x > 0 ? "+" : "") + n(x, d) + "%";
+const cls = x => x > 0 ? "up" : x < 0 ? "down" : "";
+const tile = (k, v, s = "") => `<div class="tile"><span>${k}</span><b>${v}</b><i>${s}</i></div>`;
+const px = x => x == null ? "–" : Number(x).toLocaleString("en-US", {maximumSignificantDigits: 6});
+const P = window.STATIC_SITE ? (decodeURIComponent(location.hash.slice(1)) || "/options") : location.pathname;   // static site: index.html#/coin/BTC
+const COIN = P.startsWith("/coin/") ? decodeURIComponent(P.split("/")[2]).toUpperCase() : null;
+const BOOK = P.startsWith("/strategy/") ? P.split("/")[2] : null;
+let D, views = {};
+
+const INFO = {
+  "be-btc-condor": {kind: "opt", rule: "Every Friday at 18:00 UTC (23:30 IST): sell a BTC call and a BTC put about 0.8 × DVOL × √T away from the price, expiring Saturday 12:00 UTC (17:30 IST). Buy a call and a put twice as far out as insurance, so the worst possible loss is fixed before entry. Hold all four to expiry.",
+    why: "Option buyers overpay for weekend protection, and Friday nights are quiet.", size: "5.66× notional per leg (weight 0.377 × 2.0)."},
+  "be-eth-condor": {kind: "opt", rule: "Every Friday at 18:00 UTC (23:30 IST): sell an ETH call and an ETH put about 0.8 × DVOL × √T away from the price, expiring Saturday 12:00 UTC (17:30 IST). Buy a call and a put twice as far out as insurance. Hold all four to expiry.",
+    why: "The same weekend premium on ETH; it passed its own test on Delta's real ETH prices.", size: "1.97× notional per leg (weight 0.175 × 1.5)."},
+  "be-eth-tight": {kind: "opt", rule: "Every Friday at 18:00 UTC (23:30 IST): sell an ETH call and an ETH put closer to the price, about 0.57 × DVOL × √T away (≈1.2–1.5%), the strikes Analytical Trader's ETH Consistent Strangles uses, expiring Saturday 12:00 UTC (17:30 IST). Unlike theirs, it also buys a call and a put at twice that distance, so a crash night cannot cost more than a fixed amount. Hold all four to expiry.",
+    why: "The same weekend premium; closer strikes collect more of it. On Delta's real prices it earned ~41% a year at their 5× size with insurance; over 5 years it was weak (2021 and 2023 lost), so it runs small.", size: "1.0× notional per leg (a fifth of theirs)."},
+  "be-trend": {kind: "fut", rule: "Daily after the 00:00 UTC close (05:30 IST): BTC and ETH are each held long while their 28-day return is above 0, otherwise flat. Weights are inverse 30-day volatility.",
+    why: "Slow money arrives late and keeps pushing trends further.", size: "At most 0.15× of capital in total (weight 0.101 × 1.5)."},
+  "be-eth-dip": {kind: "dip", rule: "Daily after the 00:00 UTC close (05:30 IST): buy ETH when its close is above the 200-day average and is the 3rd lower close in a row; sell at the first close above the 5-day average, or after 10 days. It stays out of downtrends.",
+    why: "Panicked and forced sellers in an uptrend; the buyer is paid for absorbing them.", size: "1.25× of capital in ETH while in a trade (weight 0.623 × 2.0)."}};
+const COMP = {"be-btc-condor": "B", "be-eth-dip": "D", "be-eth-tight": "X"};
+const REMOVED = {BTC: {opt: "", fut: "BTC trend was removed on 11 Nov 2026: too weak (Sharpe 0.54, lost in 2022)."},
+                 ETH: {opt: "", fut: ""}};
+
+function bars(rows, key = "pnl", label = r => r.date || r.expiry) {
+  if (!rows || !rows.length) return "";
+  const W = 900, H = 160, Pd = 6, max = Math.max(...rows.map(r => Math.abs(r[key])), 1), bw = (W - 2 * Pd) / rows.length, mid = H / 2;
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="height:${H}px"><line x1="${Pd}" x2="${W - Pd}" y1="${mid}" y2="${mid}" stroke="var(--line)"/>
+    ${rows.map((r, i) => { const h = Math.abs(r[key]) / max * (H / 2 - 12); return `<rect x="${Pd + i * bw}" width="${Math.max(1, bw - (bw > 3 ? 1 : 0))}" y="${r[key] >= 0 ? mid - h : mid}" height="${h}" fill="${r[key] >= 0 ? "var(--up)" : "var(--down)"}"><title>${esc(label(r))}: ${usd(r[key])}</title></rect>`; }).join("")}
+    <text x="${Pd}" y="12" font-size="11" fill="var(--mute)">+${usd(max, 0)}</text><text x="${Pd}" y="${H - 4}" font-size="11" fill="var(--mute)">−${usd(max, 0)}</text></svg>`;
+}
+const years = Y => Object.entries(Y || {}).map(([y, v]) => `${y.slice(2)}: <span class="${cls(v)}">${pct(v, 0)}</span>`).join(" · ");
+const yearsTile = (t, Y, s = "") => `<div class="tile"><span>${t}</span><div style="font-size:13px;margin:4px 0;font-weight:600">${years(Y)}</div><i>${s}</i></div>`;
+
+const books = () => D.books;
+const book = id => D.books.find(b => b.live.book === id);
+const perps = () => D.books.filter(b => INFO[b.live.book] && INFO[b.live.book].kind === "fut");
+const dips = () => D.books.filter(b => INFO[b.live.book] && INFO[b.live.book].kind === "dip");
+const options = () => D.books.filter(b => INFO[b.live.book] && INFO[b.live.book].kind === "opt");
+const pnlOf = b => b.live.pnl != null ? b.live.pnl : b.live.equity - b.live.capital;
+const coinsOf = c => [c];
+const short = s => s.replace("R3 · ", "");
+
+function nav() {
+  const items = [["/options", "Overview", !COIN && !BOOK], ["/coin/BTC", "BTC", COIN === "BTC"], ["/coin/ETH", "ETH", COIN === "ETH"], ["/advisor", "1-min advisor", false]];
+  return items.map(([h, t, on]) => `<a href="${h}" class="${on ? "on" : ""}">${t}</a>`).join("") +
+    `<span style="flex:1"></span>` + D.books.map(b => `<a href="/strategy/${b.live.book}" class="${BOOK === b.live.book ? "on" : ""}">${esc(short(b.live.book_name))}</a>`).join("");
+}
+
+// ---- option book ------------------------------------------------------------------------------------------------------
+function optionHTML(B, i) {
+  const L = B.live, p = L.pos, BT = B.backtest, view = views[i] || "full", I = INFO[L.book] || {};
+  const S = BT[view], rows = BT.rows.filter(r => view === "full" || r.expiry >= "2026-08-10");
+  const net = B.trades.reduce((a, t) => a + t.net, 0);
+  const posHTML = p ? `<table><thead><tr><th class="l">Leg</th><th class="l">Option</th><th>Filled</th><th>Mark now</th></tr></thead><tbody>${p.legs.map(l => `<tr>
+      <td class="l">${l.side === "sell" ? "<b>Sold</b>" : "Bought"} ${l.call ? "call" : "put"}</td><td class="l">${esc(l.symbol)}</td><td>${n(l.px)}</td><td>${n(l.mark_now ?? l.mark)}</td></tr>`).join("")}</tbody></table>
+      <p>Size <b>${p.qty} ${esc(L.rule.asset)}</b> per leg · credit ${usd(p.credit * p.qty)} · open P&L <b class="${cls(p.mark_pnl)}">${usd(p.mark_pnl)}</b> · worst possible <span class="down">${usd(-p.max_loss)}</span> (${n(p.max_loss_pct)}%) · expires ${esc(p.expiry_time)} UTC</p>`
+    : `<div class="empty">No position. Next entry <b>${esc(L.next_entry_ist)}</b> (in ${n(L.next_entry_in_h, 1)} h).</div>`;
+  const ev = L.events.length ? `<table><tbody>${L.events.slice().reverse().map(e => `<tr><td class="l" style="white-space:nowrap">${esc(e.time_ist)}<br><span class="mute">${esc(e.time.slice(0, 10))}</span></td><td class="l"><b>${esc(e.kind)}</b></td><td class="l">${esc(e.text)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">Each Friday's decision and the settlement appear here.</div>`;
+  const tr = B.trades.length ? `<div class="wide"><table><thead><tr><th class="l">Friday</th><th>Price</th><th class="l">Strikes</th><th>Credit</th><th>Settled</th><th>Net</th></tr></thead><tbody>${B.trades.map(t => `<tr><td class="l">${esc(t.entry_time.slice(0, 10))}</td><td>${n(t.spot)}</td><td class="l">${t.legs.map(l => (l.side === "sell" ? "−" : "+") + l.strike + (l.call ? "C" : "P")).join(" ")}</td><td>${usd(t.credit * t.qty)}</td><td>${n(t.settle_price)}</td><td class="${cls(t.net)}"><b>${usd(t.net)}</b></td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">No paper trade yet.</div>`;
+  const X = BT.stress_5y;
+  return `<div class="panel opt"><h2 style="font-size:17px">${esc(L.book_name)} <span class="badge opt">Option</span></h2>
+    <p class="mute" style="margin-top:0">${esc(I.rule || "")} <b>Size:</b> ${esc(I.size || "")}</p>
+    <div class="tiles">${tile("Paper P&L", `<span class="${cls(pnlOf(B))}">${usd(pnlOf(B))}</span>`, `${B.trades.length} trades · settled net ${usd(net)}`)}
+      ${tile("5-year replay", `<span class="${cls(X.per_year_pct)}">~${usd(X.per_year_pct * 100, 0)}</span>`, `a year on the $10,000 · t ${n(X.t_stat)} · worst week ${n(X.worst_pct)}%`)}
+      ${yearsTile("5-year replay by year", X.years, "% of the $10,000")}</div>
+    <div class="grid2"><div><h2>This week</h2>${posHTML}</div><div><h2>Agent log</h2><div class="scroll" style="max-height:260px">${ev}</div></div></div>
+    <h2 style="margin-top:12px">Paper trades</h2>${tr}
+    <h2 style="margin-top:14px">Backtest on Delta's real ${esc(L.rule.asset)} option prices, at this size</h2>
+    <div class="seg"><button data-b="${i}" data-v="full" class="${view === "full" ? "on" : ""}">Full 13 months</button><button data-b="${i}" data-v="last_3_months" class="${view === "last_3_months" ? "on" : ""}">Last 3 months</button></div>
+    <div class="tiles">${tile("Net", `<span class="${cls(S.net)}">${usd(S.net)}</span>`, `${S.fridays} Fridays`)}${tile("Winning Fridays", n(S.win_rate, 1) + "%", `avg win ${usd(S.avg_win)} · avg loss ${usd(S.avg_loss)}`)}
+      ${tile("Worst Friday", `<span class="${cls(S.worst)}">${usd(S.worst)}</span>`, `max drawdown ${n(S.max_dd_pct, 1)}%`)}</div>${bars(rows)}</div>`;
+}
+
+// ---- futures sleeves --------------------------------------------------------------------------------------------------
+function signalCell(L, c) {
+  const d = L.decision || {};
+  if (L.book === "be-trend") { const i = (d.info || {})[c]; return i ? `${i.on ? "<b class='up'>Uptrend</b>" : "<span class='mute'>No trend</span>"} · 28d ${pct(i.ret28_pct)} · vol ${n(i.vol_pct, 0)}%` : "<span class='mute'>waiting for the first daily check</span>"; }
+  const f = (d.funding_bp_8h || {})[c];
+  const side = (d.shorts || []).includes(c) ? "<b class='down'>Short</b> (crowded)" : (d.longs || []).includes(c) ? "<b class='up'>Long</b> (uncrowded)" : "<span class='mute'>Not held</span>";
+  return d.funding_bp_8h ? `${side} · funding ${f == null ? "–" : (f > 0 ? "+" : "") + n(f, 2) + " bp/8h"}` : "<span class='mute'>waiting for the first ranking</span>";
+}
+function posRows(L, coins) {
+  return coins.map(c => { const p = L.pos[c], m = (L.marks || {})[c], tgt = ((L.decision || {}).targets || {})[c];
+    const u = p && m ? p.qty * (m - p.avg) : null;
+    return `<tr><td class="l"><b>${c}</b></td><td class="l">${signalCell(L, c)}</td><td>${tgt ? usd(tgt, 0) : "–"}</td><td>${p ? `<span class="${cls(p.qty)}">${px(p.qty)}</span>` : "–"}</td><td>${p ? px(p.avg) : "–"}</td><td>${m ? px(m) : "–"}</td><td class="${cls(u)}">${u == null ? "–" : usd(u)}</td></tr>`; }).join("");
+}
+function futHTML(B, coins, full) {
+  const L = B.live, I = INFO[L.book], BT = B.backtest;
+  const fills = B.trades.filter(t => coins.includes(t.coin));
+  const ev = L.events.length ? `<table><tbody>${L.events.slice().reverse().map(e => `<tr><td class="l" style="white-space:nowrap">${esc(e.time_ist)}<br><span class="mute">${esc(e.time.slice(0, 10))}</span></td><td class="l"><b>${esc(e.kind)}</b></td><td class="l">${esc(e.text)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">Decisions appear here after each check.</div>`;
+  const ft = fills.length ? `<div class="wide scroll"><table><thead><tr><th class="l">Time (IST)</th><th class="l">Coin</th><th class="l">Side</th><th>Qty</th><th>Price</th><th>Fee</th><th>Realized</th></tr></thead><tbody>${fills.map(t => `<tr><td class="l">${esc(t.entry_time.slice(0, 10))} ${esc(t.time_ist)}</td><td class="l">${t.coin}</td><td class="l ${t.side === "BUY" ? "up" : "down"}">${t.side}</td><td>${px(t.qty)}</td><td>${px(t.px)}</td><td>${usd(t.fee)}</td><td class="${cls(t.realized)}">${usd(t.realized)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">No fills yet${full ? "" : " for " + coins.join(", ")}.</div>`;
+  return `<div class="panel fut"><h2 style="font-size:17px">${esc(L.book_name)} <span class="badge fut">Futures</span></h2>
+    <p class="mute" style="margin-top:0">${esc(I.rule)} <b>Size:</b> ${esc(I.size)}</p>
+    ${full ? `<div class="tiles">${tile("Sleeve P&L", `<span class="${cls(L.pnl)}">${usd(L.pnl)}</span>`, `realized ${usd(L.realized)} · open ${usd(L.unreal)}`)}${tile("Costs paid", usd(L.fees + L.funding), `fees ${usd(L.fees)} · funding ${usd(L.funding)}`)}
+      ${tile("Backtest at this size", `~${n(BT.full.per_year_pct, 1)}%`, `a year · Sharpe ${n(BT.full.sharpe)} · worst drawdown ${n(BT.full.max_dd_pct, 1)}%`)}${yearsTile("Backtest by year", BT.full.years, "% of the $10,000, 2021–2026")}</div>` : ""}
+    <div class="wide"><table><thead><tr><th class="l">Coin</th><th class="l">Signal now</th><th>Target</th><th>Position</th><th>Avg entry</th><th>Price now</th><th>Open P&L</th></tr></thead><tbody>${posRows(L, coins)}</tbody></table></div>
+    <div class="grid2" style="margin-top:12px"><div><h2>Fills${full ? "" : " for " + esc(coins.join(", "))}</h2>${ft}</div><div><h2>Agent log</h2><div class="scroll" style="max-height:300px">${ev}</div></div></div>
+    ${full ? `<h2 style="margin-top:14px">Backtest, weekly P&L at this size (2021–2026)</h2>${bars(BT.rows)}` : `<p><a href="/strategy/${L.book}">Full ${esc(short(L.book_name))} page →</a></p>`}</div>`;
+}
+
+function dipHTML(B) {
+  const L = B.live, p = L.pos, BT = B.backtest, sig = L.last_signal, I = INFO[L.book];
+  const posHTML = p ? `<p>Long <b>${n(p.qty)} ETH</b> from ${n(p.entry_px)} (${esc(p.entry_ist)}) · open P&L <b class="${cls(p.mark_pnl)}">${usd(p.mark_pnl)}</b><br>Exit: first daily close above the 5-day average, or after ${L.rule.max_days} days. No price stop: the 10-day time stop is the stop.</p>`
+    : `<div class="empty">No position. ${sig && sig.close ? `Last check ${esc(sig.day)}: ETH close ${n(sig.close)} is <b class="${cls(sig.above_pct)}">${pct(sig.above_pct)}</b> vs its 200-day average (${n(sig.sma200)})${sig.above_pct > 0 ? ", an uptrend; waiting for 3 lower closes in a row" : ": a downtrend, so the rule stays out"}.` : "The first check runs after the next 00:00 UTC daily close."} Next check ${esc(L.next_check_ist)}.</div>`;
+  const ev = L.events.length ? `<table><tbody>${L.events.slice().reverse().map(e => `<tr><td class="l" style="white-space:nowrap">${esc(e.time_ist)}<br><span class="mute">${esc(e.time.slice(0, 10))}</span></td><td class="l"><b>${esc(e.kind)}</b></td><td class="l">${esc(e.text)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">Each day's decision appears here.</div>`;
+  const tr = B.trades.length ? `<div class="wide"><table><thead><tr><th class="l">Bought</th><th>Entry</th><th>Exit</th><th>Fees + funding</th><th>Net</th><th class="l">Why it sold</th></tr></thead><tbody>${B.trades.map(t => `<tr><td class="l">${esc(t.entry_time.slice(0, 10))}</td><td>${n(t.entry_px)}</td><td>${n(t.exit_px)}</td><td>${usd(t.fees + t.funding)}</td><td class="${cls(t.net)}"><b>${usd(t.net)}</b></td><td class="l">${esc(t.reason)}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">No paper trade yet.</div>`;
+  return `<div class="panel fut"><h2 style="font-size:17px">${esc(L.book_name)} <span class="badge fut">Futures</span></h2>
+    <p class="mute" style="margin-top:0">${esc(I.rule)} <b>Size:</b> ${esc(I.size)}</p>
+    <div class="tiles">${tile("Paper P&L", `<span class="${cls(pnlOf(B))}">${usd(pnlOf(B))}</span>`, `${B.trades.length} trades`)}
+      ${tile("Backtest at this size", `~${n(BT.full.per_year_pct, 1)}%`, `a year · Sharpe ${n(BT.full.sharpe)} · worst drawdown ${n(BT.full.max_dd_pct, 1)}%`)}${yearsTile("Backtest by year", BT.full.years, "% of the $10,000; no trades in 2022 (downtrend)")}</div>
+    <div class="grid2"><div><h2>Now</h2>${posHTML}</div><div><h2>Agent log</h2><div class="scroll" style="max-height:260px">${ev}</div></div></div>
+    <h2 style="margin-top:12px">Paper trades</h2>${tr}
+    <p class="warn" style="margin-bottom:0">Weakest evidence in the blend: this rule passed on ETH (55 trades, t 2.8) but failed when tried on 20 coins together.</p></div>`;
+}
+
+// ---- pages ------------------------------------------------------------------------------------------------------------
+function overview() {
+  const Pf = D.portfolio, S = Pf.blend, pnl = books().reduce((a, b) => a + pnlOf(b), 0);
+  $("#note").innerHTML = `<b>BTC and ETH only.</b> One $10,000 paper account with three parts: the <b>BTC Friday-night option sale</b>, the <b>ETH dip-buy</b> (futures), and a small <b>ETH Friday-night option sale with tighter strikes</b> (the idea behind ETH Consistent Strangles, with insurance added). Backtest 2021–2026: <b>~36% a year</b>, worst drawdown 32%, every year positive. On Delta's real option prices over the last 13 months: <b>~41% a year</b>, worst drawdown 14%. Open BTC or ETH for <b>charts of every paper trade</b>.`;
+  const coinCard = c => {
+    const opt = options().filter(b => b.live.rule.asset === c);
+    const fut = [...perps().filter(b => b.live.pos[c]).map(b => `Trend long ${c}`), ...dips().filter(b => c === "ETH" && b.live.pos).map(() => "Dip-buy long ETH")];
+    return `<a class="panel card" href="/coin/${c}"><h2 style="font-size:17px">${c}</h2>
+      <p><span class="badge opt">Options</span> ${opt.map(b => `${esc(short(b.live.book_name))}: ${b.live.pos ? "position open" : "next entry " + esc(b.live.next_entry_ist)}`).join("; ") || "none"}</p>
+      <p><span class="badge fut">Futures</span> ${fut.length ? esc(fut.join(", ")) : "no position now"}</p><div class="go">Open ${c} with charts →</div></a>`; };
+  $("#body").innerHTML = `<div class="tiles">${tile("Paper equity", usd(Pf.capital + pnl), `P&L <span class="${cls(pnl)}">${usd(pnl)}</span> since start`)}
+      ${tile("Backtest per year", `~${n(S.per_year_pct, 1)}%`, `2021–2026 · Sharpe ${n(S.sharpe)}`)}${tile("Worst drawdown", n(S.max_dd_pct, 1) + "%", `worst week ${n(S.worst_pct)}%`)}
+      ${tile("Winning weeks", n(S.win_rate, 1) + "%", `${S.periods} weeks · t ${n(S.t_stat)}`)}${yearsTile("Backtest by year", S.years, "all positive")}
+      ${Pf.real_13_months ? tile("Last 13 months, real Delta prices", `~${n(Pf.real_13_months.per_year_pct, 1)}%`, `a year · worst drawdown ${n(Pf.real_13_months.max_dd_pct, 1)}% · ${Pf.real_13_months.periods} weeks`) : ""}</div>
+    <div class="cards">${coinCard("BTC")}${coinCard("ETH")}</div>
+    <div class="panel"><h2>Parts of the blend</h2><div class="wide"><table><thead><tr><th class="l">Part</th><th class="l">Type</th><th class="l">Coin</th><th>Size (weight × ${Pf.leverage})</th><th>Paper P&L</th><th>Backtest a year</th></tr></thead><tbody>
+      ${books().map(b => { const I = INFO[b.live.book] || {}, k = COMP[b.live.book], C = (Pf.components || {})[k] || {};
+        const coin = I.kind === "opt" ? b.live.rule.asset : "ETH";
+        return `<tr><td class="l"><a href="/strategy/${b.live.book}">${esc(short(b.live.book_name))}</a></td><td class="l"><span class="badge ${I.kind === "opt" ? "opt" : "fut"}">${I.kind === "opt" ? "Options" : "Futures"}</span></td><td class="l">${coin}</td><td>${n(Pf.weights[k] * Pf.leverage, 3)}</td><td class="${cls(pnlOf(b))}">${usd(pnlOf(b))}</td><td>~${n(C.per_year_pct, 1)}%</td></tr>`; }).join("")}</tbody></table></div></div>
+    <div class="panel"><h2>Backtest: weekly P&L of the whole account (2021–2026)</h2>${bars(Pf.rows)}</div>
+    <div class="panel"><h2>Risk management</h2><ul>
+      <li><b>BTC and ETH only</b>, by your choice (11 Nov 2026). The earlier R3 blend's positions in other coins were closed at the live bid/ask.</li>
+      <li><b>Two payers:</b> weekend option buyers (BTC and ETH) and panicked sellers in an ETH uptrend. The two option sales tend to lose on the same crash nights, so the ETH one is kept small (1× per leg); at 2.5× the 5-year worst drawdown rose to 41%.</li>
+      <li><b>Removed as weak (11 Nov 2026):</b> trend on BTC/ETH (Sharpe 0.54, lost in 2022) and the wider-strike ETH option sale (Sharpe 0.58, lost in 2023). Added back the same day: the tighter-strike ETH version, small.</li>
+      <li><b>Leverage 2×, fixed</b>, below the 2.33× that would reach a 30% backtest drawdown, because the two parts were picked after seeing results. Never raised after losses.</li>
+      <li><b>Concentration:</b> while the ETH dip-buy is in a trade, 1.25× of the account is long ETH; its worst trade in 6.5 years (−19.5%, May 2021) would cost about 24% of the account.</li>
+      <li><b>Option losses are capped</b> before entry by the bought options. The futures parts have no price stop; they exit by rule (see each chart).</li>
+      <li><b>Honest limits:</b> keeping only the best parts after looking at results makes the backtest optimistic; expect less. The ETH dip-buy passed on ETH but failed when tried on 20 coins together. Paper for at least 3 months before any real money.</li></ul></div>`;
+}
+
+function coinPage() {
+  if (!["BTC", "ETH"].includes(COIN)) { $("#h1").textContent = COIN; $("#note").innerHTML = "Only <b>BTC</b> and <b>ETH</b> are traded (your choice, 11 Nov 2026)."; $("#body").innerHTML = `<p><a href="/coin/BTC">BTC</a> · <a href="/coin/ETH">ETH</a></p>`; return; }
+  document.title = COIN + " · paper";
+  $("#h1").textContent = COIN;
+  $("#note").innerHTML = `Everything the blend does in <b>${COIN}</b>: options first, then futures. The charts above show each paper trade where it happened.`;
+  const opt = options().filter(b => b.live.rule.asset === COIN);
+  const fut = perps().map(b => futHTML(b, [COIN], false)).join("") + (COIN === "ETH" ? dips().map(dipHTML).join("") : "");
+  $("#body").innerHTML = `<h3><span class="badge opt">Options</span> ${COIN} options</h3>` + (opt.length ? opt.map((b, i) => optionHTML(b, i)).join("") : `<div class="panel opt"><div class="empty">No ${COIN} option strategy. ${esc(REMOVED[COIN].opt)}</div></div>`) +
+    `<h3><span class="badge fut">Futures</span> ${COIN} futures</h3>` + (fut || `<div class="panel fut"><div class="empty">No ${COIN} futures strategy. ${esc(REMOVED[COIN].fut)}</div></div>`);
+}
+
+function bookPage() {
+  const B = book(BOOK);
+  if (!B) { $("#body").innerHTML = `<div class="empty">No running strategy called "${esc(BOOK)}". <a href="/options">Back to the overview</a>.</div>`; return; }
+  document.title = B.live.book_name;
+  $("#h1").textContent = B.live.book_name;
+  const I = INFO[BOOK];
+  $("#note").innerHTML = `<b>${I.kind === "opt" ? "Options" : "Futures"}.</b> ${esc(I.rule)}<br><b>Why it pays:</b> ${esc(I.why)}`;
+  $("#body").innerHTML = I.kind === "opt" ? optionHTML(B, 0) : I.kind === "dip" ? dipHTML(B) : futHTML(B, D.portfolio.coins, true);
+}
+
+function render() {
+  $("#nav").innerHTML = nav();
+  if (!D.portfolio) { $("#body").innerHTML = `<div class="empty">No R3 backtest found (run edge/research/e12_r3_paper.py).</div>`; return; }
+  (COIN ? coinPage : BOOK ? bookPage : overview)();
+  document.querySelectorAll("#body .seg button").forEach(x => x.onclick = () => { views[x.dataset.b] = x.dataset.v; render(); });
+}
+
+// ---- charts (TradingView Lightweight Charts; times shown in IST) --------------------------------------------------------
+const IST = 19800, RES = {"1h": 3600, "4h": 14400, "1d": 86400, "15m": 900};
+const CH = {};
+let chartsBuilt = false, futCoin = null, futRes = "4h", optSel = null;
+const tsOf = s => Date.parse(String(s).replace(" ", "T") + "Z") / 1000;
+const COL = {up: "#0b8a4a", down: "#cc2b22", blue: "#1f5eea", purple: "#7a3ff2", orange: "#d97706", gray: "#5f6875"};
+
+async function candles(sym, res, start, end) {
+  const r = await fetch(`/api/candles?symbol=${encodeURIComponent(sym)}&resolution=${res}&start=${Math.floor(start)}&end=${Math.floor(end)}`);
+  const d = await r.json();
+  if (!Array.isArray(d)) throw new Error(d.error || "no candles");
+  return d.map(c => ({...c, time: c.time + IST}));
+}
+function chartFor(id) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  if (CH[id] && CH[id].el === el) return CH[id];
+  if (CH[id]) CH[id].chart.remove();
+  const chart = LightweightCharts.createChart(el, {autoSize: true, layout: {background: {type: "solid", color: "#ffffff"}, textColor: "#14171c"},
+    grid: {vertLines: {color: "#eef1f5"}, horzLines: {color: "#eef1f5"}}, timeScale: {timeVisible: true, secondsVisible: false, borderColor: "#e3e7ee"},
+    rightPriceScale: {borderColor: "#e3e7ee"}, crosshair: {mode: 0}});
+  const series = chart.addCandlestickSeries({upColor: COL.up, downColor: COL.down, borderVisible: false, wickUpColor: COL.up, wickDownColor: COL.down});
+  return (CH[id] = {el, chart, series, lines: []});
+}
+function setLevels(C, levels) {
+  C.lines.forEach(l => C.series.removePriceLine(l));
+  C.range = levels.length ? [Math.min(...levels.map(l => l.price)), Math.max(...levels.map(l => l.price))] : null;
+  C.series.applyOptions({autoscaleInfoProvider: orig => { const r = orig(); if (!r || !C.range) return r;
+    return {...r, priceRange: {minValue: Math.min(r.priceRange.minValue, C.range[0]), maxValue: Math.max(r.priceRange.maxValue, C.range[1])}}; }});
+  C.lines = levels.map(l => C.series.createPriceLine({price: l.price, color: l.color, lineWidth: 2, lineStyle: l.style ?? 2, axisLabelVisible: true, title: l.title}));
+}
+function precisionFor(p) { const d = p < 1 ? 5 : p < 10 ? 4 : p < 1000 ? 2 : 1; return {type: "price", precision: d, minMove: Math.pow(10, -d)}; }
+const keyHTML = items => `<div class="key">${items.map(([c, t, solid]) => `<span><i style="border-top-color:${c};border-top-style:${solid ? "solid" : "dashed"}"></i>${t}</span>`).join("")}</div>`;
+
+// futures: one coin, fills from the sleeves as arrows, open-position and exit levels as lines
+function futCoins() { return COIN ? [COIN] : BOOK === "be-eth-dip" ? ["ETH"] : D.portfolio.coins; }
+function futSleeves() { return BOOK ? [book(BOOK)] : [...perps(), ...dips()]; }
+const isDip = b => INFO[b.live.book].kind === "dip";
+const hasPos = (b, c) => isDip(b) ? c === "ETH" && !!b.live.pos : !!(b.live.pos && b.live.pos[c]);
+function futPanel() {
+  const cs = futCoins(), held = cs.filter(c => futSleeves().some(b => hasPos(b, c)));
+  futCoin = futCoin && cs.includes(futCoin) ? futCoin : (held[0] || cs[0]);
+  const sel = cs.length > 1 ? `<select id="futCoin">${cs.map(c => `<option ${c === futCoin ? "selected" : ""} value="${c}">${c}${held.includes(c) ? " ●" : ""}</option>`).join("")}</select>` : "";
+  return `<div class="panel fut"><h2 style="font-size:17px">Futures chart <span class="badge fut">Futures</span></h2>
+    <div class="ctl">${sel}${["1h", "4h", "1d"].map(r => `<button data-res="${r}" class="${r === futRes ? "on" : ""}">${r}</button>`).join("")}<span class="mute" id="futInfo"></span></div>
+    <div id="futchart" class="chart"></div>
+    ${keyHTML([[COL.up, "▲ buy"], [COL.down, "▼ sell"], [COL.blue, "entry price of the open position"], [COL.orange, "trend exit: next daily close below this"], [COL.up, "dip-buy take-profit: next daily close above this"]])}
+    <p class="mute" style="margin-bottom:0">Times in IST. These futures parts were tested <b>without a fixed stop-loss</b>, so none is drawn. <b>Trend</b> exits when the 28-day return turns negative: the orange line is the level the next daily close (05:30 IST) must stay above. <b>ETH dip-buy</b> takes profit at the first daily close above its 5-day average (green line), or sells after 10 days (the time stop).</p></div>`;
+}
+async function drawFut() {
+  const C = chartFor("futchart");
+  if (!C) return;
+  const c = futCoin, sec = RES[futRes], end = Date.now() / 1000, start = end - {"1h": 14, "4h": 60, "1d": 300}[futRes] * 86400;
+  try {
+    const data = await candles(`${c}USD`, futRes, start, end);
+    if (!data.length) throw new Error("no candles");
+    C.series.applyOptions({priceFormat: precisionFor(data[data.length - 1].close)});
+    C.series.setData(data);
+    const t0 = data[0].time;
+    const bar = x => Math.floor((x + IST) / sec) * sec;
+    const levels = [], info = [];
+    const dipMarks = futSleeves().filter(isDip).filter(() => c === "ETH").flatMap(b => [
+      ...b.trades.flatMap(t => [{time: bar(tsOf(t.entry_time)), position: "belowBar", color: COL.up, shape: "arrowUp", text: `Dip BUY ${n(t.qty)} @ ${n(t.entry_px)}`},
+                                {time: bar(tsOf(t.closed)), position: "aboveBar", color: t.net >= 0 ? COL.up : COL.down, shape: "arrowDown", text: `Dip SELL @ ${n(t.exit_px)} · ${usd(t.net)}`}]),
+      ...(b.live.pos ? [{time: bar(b.live.pos.entry_t), position: "belowBar", color: COL.up, shape: "arrowUp", text: `Dip BUY ${n(b.live.pos.qty)} @ ${n(b.live.pos.entry_px)} (open)`}] : [])]);
+    const marks = [...dipMarks, ...futSleeves().filter(b => !isDip(b)).flatMap(b => b.trades.filter(t => t.coin === c).map(t => {
+      const bt = Math.floor((tsOf(t.entry_time) + IST) / sec) * sec, buy = t.side === "BUY", name = "Trend";
+      return {time: bt, position: buy ? "belowBar" : "aboveBar", color: buy ? COL.up : COL.down, shape: buy ? "arrowUp" : "arrowDown", text: `${name} ${t.side} ${px(t.qty)} @ ${px(t.px)}`};
+    }))].filter(m => m.time >= t0).sort((a, b) => a.time - b.time);
+    C.series.setMarkers(marks);
+    const today = Math.floor(end / 86400) * 86400;
+    let d1 = null;
+    const daily = async () => d1 || (d1 = (await candles(`${c}USD`, "1d", today - 45 * 86400, end)).filter(x => x.time - IST < today));
+    for (const b of futSleeves().filter(isDip)) {
+      const p = b.live.pos;
+      if (c !== "ETH" || !p) continue;
+      const m = (await daily()), last4 = m.slice(-4).map(x => x.close);
+      levels.push({price: p.entry_px, color: COL.blue, title: `Dip long ${n(p.qty)} entry`});
+      if (last4.length === 4) levels.push({price: last4.reduce((a, x) => a + x, 0) / 4, color: COL.up, title: "Dip take-profit: next close above"});
+      info.push(`Dip-buy long ${n(p.qty)} ETH · open P&L <b class="${cls(p.mark_pnl)}">${usd(p.mark_pnl)}</b>`);
+    }
+    for (const b of futSleeves().filter(x => !isDip(x))) {
+      const p = b.live.pos[c], name = "Trend";
+      if (!p) continue;
+      const m = (b.live.marks || {})[c], u = m ? p.qty * (m - p.avg) : null;
+      levels.push({price: p.avg, color: p.qty > 0 ? COL.blue : COL.purple, title: `${name} ${p.qty > 0 ? "long" : "short"} ${px(Math.abs(p.qty))} avg`});
+      info.push(`${name} ${p.qty > 0 ? "long" : "short"} ${px(Math.abs(p.qty))} ${c} · open P&L <b class="${cls(u)}">${usd(u)}</b>`);
+      if (p.qty > 0) {
+        const m = await daily();
+        if (m.length >= 29) levels.push({price: m[m.length - 28].close, color: COL.orange, title: "Trend exit: next close below"});
+      }
+    }
+    setLevels(C, levels);
+    $("#futInfo").innerHTML = info.length ? info.join(" · ") : `no open position in ${c}`;
+    if (!C.fitted) { C.chart.timeScale().fitContent(); C.fitted = true; }
+  } catch (e) { $("#futInfo").textContent = "chart unavailable: " + e.message; }
+}
+
+// options: one Friday trade, with the profit zone, breakevens and the capped-loss levels
+const optAsset = () => COIN || (BOOK ? (book(BOOK).live.rule || {}).asset : null);
+function optTrades() {
+  const B = options().find(b => b.live.rule.asset === optAsset());
+  if (!B) return [];
+  const L = B.live, out = [];
+  if (L.pos) out.push({id: "open", label: `Open: ${L.pos.entry_time.slice(0, 10)}`, t: L.pos, open: true});
+  B.trades.forEach((t, i) => out.push({id: "s" + i, label: `${t.entry_time.slice(0, 10)}: ${t.net >= 0 ? "+" : "−"}$${n(Math.abs(t.net))}`, t, open: false}));
+  return out;
+}
+function optPanel() {
+  const T = optTrades();
+  optSel = optSel && T.some(x => x.id === optSel) ? optSel : (T[0] || {}).id;
+  return `<div class="panel opt"><h2 style="font-size:17px">${optAsset()} option trade chart <span class="badge opt">Option</span></h2>
+    <div class="ctl">${T.length ? `<select id="optSel">${T.map(x => `<option value="${x.id}" ${x.id === optSel ? "selected" : ""}>${esc(x.label)}</option>`).join("")}</select>` : ""}<span class="mute" id="optInfo"></span></div>
+    <div id="optchart" class="chart"></div>
+    ${keyHTML([[COL.up, `sold strikes: full profit if ${optAsset()} expires between them`], [COL.orange, "breakevens"], [COL.down, "bought strikes: the loss is capped beyond these"]])}
+    <p class="mute" style="margin-bottom:0">Times in IST; ${optAsset()} index, 15-minute candles. The option sale has no stop: the bought options are the stop, so the worst loss is fixed when the trade opens.</p></div>`;
+}
+async function drawOpt() {
+  const C = chartFor("optchart");
+  if (!C) return;
+  const T = optTrades().find(x => x.id === optSel), now = Date.now() / 1000;
+  try {
+    if (!T) {
+      const data = await candles(`.DE${optAsset()}USD`, "1h", now - 3 * 86400, now);
+      C.series.setData(data); C.series.setMarkers([]); setLevels(C, []);
+      const OB = options().find(b => b.live.rule.asset === optAsset());
+      $("#optInfo").innerHTML = `No option trade yet. The first entry is <b>${esc(OB ? OB.live.next_entry_ist : "")}</b>; its strikes, breakevens and loss limits will be drawn here.`;
+      C.chart.timeScale().fitContent();
+      return;
+    }
+    const t = T.t, end = Math.min(now, t.expiry_t + 3 * 3600);
+    const data = await candles(`.DE${optAsset()}USD`, "15m", t.entry_t - 12 * 3600, end);
+    C.series.setData(data);
+    const k = Object.fromEntries(t.legs.map(l => [l.name, l.strike])), cr = t.credit;
+    setLevels(C, [
+      {price: k.short_call, color: COL.up, title: `sold call ${k.short_call}`}, {price: k.short_put, color: COL.up, title: `sold put ${k.short_put}`},
+      {price: k.short_call + cr, color: COL.orange, title: "breakeven", style: 1}, {price: k.short_put - cr, color: COL.orange, title: "breakeven", style: 1},
+      {price: k.wing_call, color: COL.down, title: `bought call ${k.wing_call}: max loss above`}, {price: k.wing_put, color: COL.down, title: `bought put ${k.wing_put}: max loss below`}]);
+    const bar = x => Math.floor((x + IST) / 900) * 900;
+    const marks = [{time: bar(t.entry_t), position: "belowBar", color: COL.blue, shape: "arrowUp", text: `Sold condor · credit ${usd(cr * t.qty)}`}];
+    if (!T.open && t.expiry_t + IST <= data[data.length - 1].time) marks.push({time: bar(t.expiry_t), position: "aboveBar", color: t.net >= 0 ? COL.up : COL.down, shape: "circle", text: `Settled ${n(t.settle_price, 0)} · net ${usd(t.net)}`});
+    C.series.setMarkers(marks.sort((a, b) => a.time - b.time));
+    $("#optInfo").innerHTML = T.open ? `Open · ${t.qty} ${optAsset()} per leg · open P&L <b class="${cls(t.mark_pnl)}">${usd(t.mark_pnl)}</b> · worst possible ${usd(-t.max_loss)} · expires ${esc(t.expiry_time)} UTC`
+      : `Settled at ${n(t.settle_price)} · net <b class="${cls(t.net)}">${usd(t.net)}</b> (${n(t.net_pct)}%)`;
+    C.chart.timeScale().fitContent();
+  } catch (e) { $("#optInfo").textContent = "chart unavailable: " + e.message; }
+}
+
+function buildCharts() {
+  if (!window.LightweightCharts) { $("#charts").innerHTML = `<div class="panel"><div class="empty">Charts need the internet (the chart library loads from unpkg.com).</div></div>`; return; }
+  const kind = BOOK ? INFO[BOOK] && INFO[BOOK].kind : null;
+  const okCoin = ["BTC", "ETH"].includes(COIN);
+  const futHere = COIN === "ETH" ? perps().length + dips().length > 0 : perps().length > 0;
+  const wantOpt = (okCoin && options().some(b => b.live.rule.asset === COIN)) || kind === "opt", wantFut = (okCoin && futHere) || kind === "fut" || kind === "dip";
+  $("#charts").innerHTML = (wantOpt ? optPanel() : "") + (wantFut ? futPanel() : "");
+  const fc = $("#futCoin"); if (fc) fc.onchange = () => { futCoin = fc.value; CH.futchart && (CH.futchart.fitted = false); drawFut(); };
+  document.querySelectorAll("#charts [data-res]").forEach(b => b.onclick = () => { futRes = b.dataset.res; document.querySelectorAll("#charts [data-res]").forEach(x => x.classList.toggle("on", x === b)); CH.futchart && (CH.futchart.fitted = false); drawFut(); });
+  const os = $("#optSel"); if (os) os.onchange = () => { optSel = os.value; drawOpt(); };
+  if (wantOpt) drawOpt();
+  if (wantFut) drawFut();
+  chartsBuilt = true;
+}
+function refreshCharts() { if (!chartsBuilt) return; if ($("#optchart")) drawOpt(); if ($("#futchart")) drawFut(); }
+setInterval(refreshCharts, 60000);
+
+async function load() {
+  try { const r = await fetch("/api/options", {cache: "no-store"}); D = await r.json(); if (D.error) throw new Error(D.error); render(); if (!chartsBuilt && D.portfolio) { try { buildCharts(); } catch (e) { $("#charts").innerHTML = `<div class="panel"><div class="empty">Chart error: ${esc(e.message)}</div></div>`; chartsBuilt = true; } } }
+  catch (e) { $("#body").innerHTML = `<div class="empty">Not reachable: ${esc(e.message)}</div>`; }
+}
+load(); setInterval(load, 15000);
+</script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+{
+ "source": "edge/research/e4_more_edges.py (A4, pre-registered), Delta's own ETH option marks",
+ "capital": 10000,
+ "leverage": 7.5,
+ "last_3_months": {
+  "fridays": 13,
+  "from": "2026-08-16",
+  "to": "2026-11-08",
+  "net": 1055.44,
+  "return_pct": 10.55,
+  "per_year_pct": 42.4,
+  "win_rate": 84.6,
+  "avg_win": 141.51,
+  "avg_loss": -250.57,
+  "worst": -435.71,
+  "best": 384.43,
+  "max_dd": 435.71,
+  "max_dd_pct": 4.36,
+  "t_stat": 1.57,
+  "worst_possible": 2708.6
+ },
+ "full": {
+  "fridays": 50,
+  "from": "2025-10-19",
+  "to": "2026-11-08",
+  "net": 5545.28,
+  "return_pct": 55.45,
+  "per_year_pct": 57.9,
+  "win_rate": 92.0,
+  "avg_win": 169.47,
+  "avg_loss": -562.56,
+  "worst": -1499.87,
+  "best": 571.97,
+  "max_dd": 1499.87,
+  "max_dd_pct": 15.0,
+  "t_stat": 2.74,
+  "worst_possible": 3586.6
+ },
+ "rows": [
+  {
+   "expiry": "2025-10-19",
+   "pnl": 354.41,
+   "credit_bp": 50.47,
+   "max_loss": 2786.7
+  },
+  {
+   "expiry": "2025-10-26",
+   "pnl": 152.37,
+   "credit_bp": 21.59,
+   "max_loss": 2549.4
+  },
+  {
+   "expiry": "2025-11-02",
+   "pnl": 131.65,
+   "credit_bp": 18.75,
+   "max_loss": 2217.7
+  },
+  {
+   "expiry": "2025-11-09",
+   "pnl": 171.5,
+   "credit_bp": 25.6,
+   "max_loss": 2489.4
+  },
+  {
+   "expiry": "2025-11-16",
+   "pnl": 467.51,
+   "credit_bp": 66.72,
+   "max_loss": 2843.7
+  },
+  {
+   "expiry": "2025-11-23",
+   "pnl": 571.97,
+   "credit_bp": 81.7,
+   "max_loss": 3210.2
+  },
+  {
+   "expiry": "2025-12-07",
+   "pnl": 166.23,
+   "credit_bp": 24.76,
+   "max_loss": 2803.0
+  },
+  {
+   "expiry": "2025-12-21",
+   "pnl": 229.96,
+   "credit_bp": 32.9,
+   "max_loss": 2320.2
+  },
+  {
+   "expiry": "2026-01-04",
+   "pnl": 103.86,
+   "credit_bp": 15.89,
+   "max_loss": 2296.1
+  },
+  {
+   "expiry": "2026-01-25",
+   "pnl": 194.3,
+   "credit_bp": 27.6,
+   "max_loss": 2321.0
+  },
+  {
+   "expiry": "2026-02-01",
+   "pnl": -1499.87,
+   "credit_bp": 25.87,
+   "max_loss": 2580.9
+  },
+  {
+   "expiry": "2026-02-08",
+   "pnl": 552.22,
+   "credit_bp": 79.23,
+   "max_loss": 3076.3
+  },
+  {
+   "expiry": "2026-02-15",
+   "pnl": 145.34,
+   "credit_bp": 21.41,
+   "max_loss": 2767.6
+  },
+  {
+   "expiry": "2026-02-22",
+   "pnl": 141.13,
+   "credit_bp": 20.26,
+   "max_loss": 2911.2
+  },
+  {
+   "expiry": "2026-03-01",
+   "pnl": 238.82,
+   "credit_bp": 34.71,
+   "max_loss": 2868.1
+  },
+  {
+   "expiry": "2026-03-15",
+   "pnl": 145.47,
+   "credit_bp": 20.78,
+   "max_loss": 2703.8
+  },
+  {
+   "expiry": "2026-03-22",
+   "pnl": 89.15,
+   "credit_bp": 12.92,
+   "max_loss": 2017.8
+  },
+  {
+   "expiry": "2026-03-29",
+   "pnl": 150.16,
+   "credit_bp": 22.55,
+   "max_loss": 2883.3
+  },
+  {
+   "expiry": "2026-04-05",
+   "pnl": 71.06,
+   "credit_bp": 10.1,
+   "max_loss": 3586.6
+  },
+  {
+   "expiry": "2026-04-12",
+   "pnl": 97.11,
+   "credit_bp": 14.66,
+   "max_loss": 2571.4
+  },
+  {
+   "expiry": "2026-04-19",
+   "pnl": -249.23,
+   "credit_bp": 20.25,
+   "max_loss": 2321.8
+  },
+  {
+   "expiry": "2026-04-26",
+   "pnl": 64.21,
+   "credit_bp": 9.43,
+   "max_loss": 1229.7
+  },
+  {
+   "expiry": "2026-05-03",
+   "pnl": 41.99,
+   "credit_bp": 6.27,
+   "max_loss": 1906.0
+  },
+  {
+   "expiry": "2026-05-10",
+   "pnl": 61.08,
+   "credit_bp": 8.77,
+   "max_loss": 1888.8
+  },
+  {
+   "expiry": "2026-05-17",
+   "pnl": 44.29,
+   "credit_bp": 6.34,
+   "max_loss": 1972.7
+  },
+  {
+   "expiry": "2026-05-24",
+   "pnl": 39.22,
+   "credit_bp": 5.61,
+   "max_loss": 2084.6
+  },
+  {
+   "expiry": "2026-05-31",
+   "pnl": 159.52,
+   "credit_bp": 22.6,
+   "max_loss": 2060.7
+  },
+  {
+   "expiry": "2026-06-07",
+   "pnl": 524.14,
+   "credit_bp": 76.77,
+   "max_loss": 2292.6
+  },
+  {
+   "expiry": "2026-06-14",
+   "pnl": 137.92,
+   "credit_bp": 19.45,
+   "max_loss": 2557.1
+  },
+  {
+   "expiry": "2026-06-21",
+   "pnl": 154.84,
+   "credit_bp": 21.8,
+   "max_loss": 2484.2
+  },
+  {
+   "expiry": "2026-06-28",
+   "pnl": 176.43,
+   "credit_bp": 25.67,
+   "max_loss": 1719.3
+  },
+  {
+   "expiry": "2026-07-05",
+   "pnl": 153.46,
+   "credit_bp": 21.73,
+   "max_loss": 2436.5
+  },
+  {
+   "expiry": "2026-07-12",
+   "pnl": 93.56,
+   "credit_bp": 13.31,
+   "max_loss": 1582.7
+  },
+  {
+   "expiry": "2026-07-19",
+   "pnl": 135.94,
+   "credit_bp": 19.17,
+   "max_loss": 2307.2
+  },
+  {
+   "expiry": "2026-07-26",
+   "pnl": 80.71,
+   "credit_bp": 11.38,
+   "max_loss": 2331.2
+  },
+  {
+   "expiry": "2026-08-02",
+   "pnl": 121.91,
+   "credit_bp": 17.22,
+   "max_loss": 2276.9
+  },
+  {
+   "expiry": "2026-08-09",
+   "pnl": 75.5,
+   "credit_bp": 10.64,
+   "max_loss": 2275.3
+  },
+  {
+   "expiry": "2026-08-16",
+   "pnl": 55.96,
+   "credit_bp": 7.88,
+   "max_loss": 2340.6
+  },
+  {
+   "expiry": "2026-08-23",
+   "pnl": 384.43,
+   "credit_bp": 54.62,
+   "max_loss": 2708.6
+  },
+  {
+   "expiry": "2026-08-30",
+   "pnl": 126.7,
+   "credit_bp": 17.99,
+   "max_loss": 1714.6
+  },
+  {
+   "expiry": "2026-09-06",
+   "pnl": 111.0,
+   "credit_bp": 15.87,
+   "max_loss": 1727.9
+  },
+  {
+   "expiry": "2026-09-13",
+   "pnl": -435.71,
+   "credit_bp": 28.56,
+   "max_loss": 2137.5
+  },
+  {
+   "expiry": "2026-09-20",
+   "pnl": 95.69,
+   "credit_bp": 14.33,
+   "max_loss": 2208.6
+  },
+  {
+   "expiry": "2026-09-27",
+   "pnl": 84.46,
+   "credit_bp": 11.88,
+   "max_loss": 2147.5
+  },
+  {
+   "expiry": "2026-10-04",
+   "pnl": 102.99,
+   "credit_bp": 14.41,
+   "max_loss": 2129.1
+  },
+  {
+   "expiry": "2026-10-11",
+   "pnl": 75.03,
+   "credit_bp": 10.55,
+   "max_loss": 1733.9
+  },
+  {
+   "expiry": "2026-10-18",
+   "pnl": 134.11,
+   "credit_bp": 18.99,
+   "max_loss": 1731.6
+  },
+  {
+   "expiry": "2026-10-25",
+   "pnl": -65.43,
+   "credit_bp": 7.97,
+   "max_loss": 1190.2
+  },
+  {
+   "expiry": "2026-11-01",
+   "pnl": 224.1,
+   "credit_bp": 31.62,
+   "max_loss": 2449.6
+  },
+  {
+   "expiry": "2026-11-08",
+   "pnl": 162.11,
+   "credit_bp": 22.92,
+   "max_loss": 2534.8
+  }
+ ]
+}

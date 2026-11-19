@@ -1,0 +1,40 @@
+# BTC/ETH scalping agent: PAPER mode on Delta Exchange India's live public data. No API key exists in this project.
+# Rules: Trading/.claude/skills/btc-eth-scalping-agent/SKILL.md. Limits are the skill's provisional paper defaults (section 8);
+# only the owner changes them. The agent never edits this file.
+mode = "PAPER"
+capital = 10000.0
+port = 8770
+symbols = ["BTCUSD", "ETHUSD"]
+
+[costs]
+gst = 0.18
+slippage_bp = 1.0          # added to every aggressive fill and stop; raised (never lowered) if real fills show more
+latency_s = 0.30           # an aggressive paper order fills at the quote this much later
+
+[limits]
+risk_per_trade_pct = 0.25
+open_risk_pct = 1.0
+max_leverage = 3.0
+daily_loss_pct = 1.5
+weekly_loss_pct = 4.0
+max_drawdown_pct = 8.0
+consecutive_losses_pause = 4      # then a 2-hour pause
+consecutive_losses_day = 6        # then no more entries that UTC day
+pause_minutes = 120
+max_trades_per_day = 12
+max_positions = 2
+max_l1_age_s = 2.0
+max_index_age_s = 5.0
+max_spread_bp = 3.0
+max_entry_slip_bp = 3.0           # or 0.25 x the stop distance, whichever is larger
+half_size_drawdown_pct = 4.0
+exploring_trades = 50             # a setup trades at half size until this many closed trades
+
+[gate]
+min_target_cost_ratio = 3.0       # skill section 4: target distance >= 3 x round-trip cost
+min_expected_cost_ratio = 2.0     # expected gross >= 2 x cost to count as "qualified"
+qualified_min_trades = 30
+
+# Scheduled high-impact events (UTC): no new entries from 10 min before to 15 min after. Add CPI / payrolls dates here.
+[events]
+times = ["2026-12-09T19:00:00Z"]  # FOMC decision (EST: 14:00 New York = 19:00 UTC)

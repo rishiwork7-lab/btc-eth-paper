@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>1-Minute Trade Advisor</title>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root{color-scheme:light;--bg:#f7f8fb;--card:#ffffff;--ink:#14171c;--mute:#5f6875;--line:#e3e7ee;--up:#0b8a4a;--down:#cc2b22;--accent:#1f5eea;--warn:#a35a00;--chip:#eaf0ff;--warnchip:#fff3e0;--upchip:#e6f6ee;--grey:#eef0f4}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:1320px;margin:0 auto;padding:16px}a{color:var(--accent)}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:12px}h1{font-size:21px;margin:0}h2{font-size:15px;margin:0 0 10px}
+.badge{background:var(--chip);color:var(--accent);border-radius:999px;padding:2px 10px;font-weight:600;font-size:12px;white-space:nowrap}
+.st{border-radius:999px;padding:1px 9px;font-weight:600;font-size:12px;white-space:nowrap}
+.st.RECOMMENDED{background:var(--upchip);color:var(--up)}.st.UNPROVEN{background:var(--warnchip);color:var(--warn)}
+.st.BLOCKED{background:var(--grey);color:var(--mute)}.st.SKIPPED{background:var(--grey);color:var(--mute);font-weight:500}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}nav a{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 14px;text-decoration:none;font-weight:500}
+nav a.on{border-color:var(--accent);background:var(--chip);color:var(--accent);font-weight:600}
+.note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:14px}
+.note p{margin:4px 0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}.tile>span{display:block;color:var(--mute);font-size:12px}
+.tile b{display:block;font-size:20px;margin:2px 0}.tile i{font-style:normal;color:var(--mute);font-size:12px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px}.grid2>*{min-width:0}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+th{color:var(--mute);font-weight:500;font-size:12px;position:sticky;top:0;background:var(--card)}td.l,th.l{text-align:left}
+.scroll{overflow:auto;max-height:560px}.wide{overflow-x:auto}
+.up{color:var(--up)}.down{color:var(--down)}.mute{color:var(--mute)}.warn{color:var(--warn)}.empty{color:var(--mute);padding:8px 0}
+tr.rec{cursor:pointer}tr.rec:hover td{background:#f3f6fc}tr.det td{background:#fafbfd;text-align:left;white-space:normal}
+.det h4{margin:10px 0 4px;font-size:13px}.det p{margin:3px 0}.det ul{margin:4px 0;padding-left:18px}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:2px 14px;font-size:12px}.kv span{color:var(--mute)}
+.ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:8px}
+.ctl button,.ctl select{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:5px 11px;font:inherit;cursor:pointer}
+.ctl button.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+.chart{height:470px;width:100%}
+.chartwrap{display:grid;grid-template-columns:minmax(0,3fr) minmax(270px,1fr);gap:14px}.chartwrap>*{min-width:0}
+.sw{display:inline-block;width:14px;height:10px;border-radius:2px;vertical-align:middle;margin-right:4px}.sw.g{background:rgba(11,138,74,.3)}.sw.r{background:rgba(204,43,34,.26)}
+.titem{border-bottom:1px solid var(--line);padding:7px 6px;cursor:pointer;font-size:13px}.titem:hover{background:#f3f6fc}.titem.on{background:var(--chip);box-shadow:inset 3px 0 0 var(--accent)}
+.selbox{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px}.selbox:empty{display:none}
+button.link{border:1px solid var(--accent);background:var(--card);color:var(--accent);border-radius:8px;padding:4px 10px;font:inherit;cursor:pointer}
+@media (max-width:900px){.chartwrap{grid-template-columns:1fr}}.small{height:220px;width:100%}
+.idea{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px}.idea.BUY{border-left:4px solid var(--up)}.idea.SELL{border-left:4px solid var(--down)}
+.idea .lv{display:flex;flex-wrap:wrap;gap:4px 18px;margin:6px 0;font-variant-numeric:tabular-nums}.idea .lv b{font-size:15px}
+.bar{height:6px;background:var(--grey);border-radius:3px;overflow:hidden}.bar i{display:block;height:100%;background:var(--accent)}
+.key{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--mute);margin-top:4px}.key i{display:inline-block;width:18px;height:0;border-top:2px dashed;vertical-align:middle;margin-right:4px}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}main{padding:12px}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>1-minute trade advisor</h1><span class="badge">PAPER · BTC & ETH · Delta Exchange 1-minute candles · learns from every outcome</span><span id="phase" class="mute"></span></header>
+<nav><a href="/options">Overview</a><a href="/coin/BTC">BTC</a><a href="/coin/ETH">ETH</a><a href="/advisor" class="on">1-min advisor</a></nav>
+<div class="note" id="note">Loading…</div>
+<div class="tiles" id="tiles"></div>
+
+<div class="panel"><h2>Trade ideas open now</h2><div id="ideas"></div></div>
+
+<div class="panel" id="chartPanel">
+  <div class="ctl"><h2 style="margin:0 8px 0 0">Every trade on the 1-minute chart</h2>
+    <button data-sym="BTCUSD">BTC</button><button data-sym="ETHUSD" class="on">ETH</button>
+    <span style="width:8px"></span><button id="latest" class="on">Latest 12 h</button><button id="olderT">◀ Older trade</button><button id="newerT">Newer trade ▶</button><button id="shadowBtn" class="on" title="Show the setups the model skipped but is still following">Skipped candidates</button>
+    <span class="mute" id="chartInfo"></span></div>
+  <div class="chartwrap">
+    <div>
+      <div id="chart" class="chart"></div>
+      <div class="key"><span><b class="sw g"></b>target zone (entry → target)</span><span><b class="sw r"></b>stop zone (entry → stop)</span><span><i style="border-color:#1f5eea;border-top-style:solid"></i>entry price</span><span>● exit: green = target, red = stop, grey = time stop</span><span>box width = how long the trade was open (an open trade runs to its time stop)</span><span><b>bold blue outline</b> = open trade now · <b>dashed outline</b> = skipped candidate followed in the shadow</span></div>
+      <div id="sel" class="selbox"></div>
+    </div>
+    <div><div class="ctl"><b>Trades taken</b><span class="mute" id="tcount"></span></div><div class="scroll" style="max-height:520px" id="tlist"></div></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="ctl"><h2 style="margin:0 8px 0 0">Record: every idea and why</h2>
+    <button data-src="live" class="on">Live</button><button data-src="history">History replay (latest 150)</button>
+    <span style="width:10px"></span>
+    <button data-show="picks" class="on">Model picks</button><button data-show="all">All candidates</button>
+    <span class="mute">Click a row for the full reasoning, the market data at entry, why it worked or failed, and what the model learned.</span></div>
+  <div class="scroll"><table><thead><tr><th class="l">Time (IST)</th><th class="l">Coin</th><th class="l">Setup</th><th class="l">Side</th><th class="l">Status</th><th>Entry</th><th>Stop</th><th>Target</th><th>Model score</th><th>Expected</th><th class="l">Outcome</th><th>Result</th></tr></thead><tbody id="recs"></tbody></table></div>
+</div>
+
+<div class="panel">
+  <h2>Learning: what the model knows per setup</h2>
+  <p class="mute" style="margin-top:-4px">Each setup family has its own model. It learns from <b>every</b> candidate's outcome (picked or not), so it can't fool itself. "Picks" are the ideas it scored above +<span id="edge"></span> R after costs <b>before</b> knowing the outcome; that record decides trust.</p>
+  <div class="wide"><table><thead><tr><th class="l">Setup</th><th class="l">Hypothesis</th><th>Learned from</th><th>All candidates: avg net R</th><th>Model picks</th><th>Picks avg net R</th><th>t</th><th>Profit factor</th><th>Live picks</th><th class="l">Trust</th></tr></thead><tbody id="fams"></tbody></table></div>
+  <div class="grid2" style="margin-top:14px">
+    <div><div class="ctl"><b>Model weights</b><select id="famSel"></select><span class="mute">positive = pushes the score up</span></div><table><thead><tr><th class="l">Input</th><th>Weight</th><th>Change since yesterday</th></tr></thead><tbody id="weights"></tbody></table></div>
+    <div><b>Calibration: does a higher score really mean better results?</b><table style="margin-top:8px"><thead><tr><th class="l">Score band</th><th>Ideas</th><th>Model expected (gross R)</th><th>Actually got (gross R)</th></tr></thead><tbody id="calib"></tbody></table></div>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="panel"><h2>Virtual account following the picks (0.25% risk each)</h2><div class="ctl"><button data-book="live" class="on">Live</button><button data-book="history">History replay</button><span class="mute" id="bookInfo"></span></div><div id="eq" class="small"></div></div>
+  <div class="panel"><h2>Learning log (latest updates, live)</h2><div class="scroll" style="max-height:300px" id="log"></div></div>
+</div>
+<p class="mute">Rules: <code>scalper/advisor.py</code> (version <span id="ver"></span>). Skill: <code>.claude/skills/btc-eth-scalping-agent</code>. No API key exists here, so nothing can place a real order.</p>
+</main>
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const n = (x, d = 2) => x == null || isNaN(x) ? "–" : Number(x).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const px = (x, sym) => x == null ? "–" : n(x, sym === "BTCUSD" ? 1 : 2);
+const r = (x, d = 2) => x == null ? "–" : `<span class="${x > 0 ? "up" : x < 0 ? "down" : ""}">${x > 0 ? "+" : ""}${n(x, d)} R</span>`;
+const usd = x => x == null ? "–" : `<span class="${x > 0 ? "up" : x < 0 ? "down" : ""}">${x < 0 ? "−" : x > 0 ? "+" : ""}$${n(Math.abs(x))}</span>`;
+const PICK = new Set(["RECOMMENDED", "UNPROVEN", "BLOCKED"]);
+const OUT = {target: "Target hit", stop: "Stopped out", time: "Time stop"};
+let D = null, SRC = "live", SHOW = "picks", SYM = "ETHUSD", BOOK = "live", FAM = null, OPEN_ID = null, H = null;
+
+async function load() {
+  try {
+    const res = await fetch(`/api/advisor?source=${SRC}`);
+    D = await res.json();
+    if (D.error && !D.families) throw new Error(D.error);
+    if (SRC === "history") H = D;
+    render();
+  } catch (e) { $("#note").innerHTML = `Advisor data unavailable: ${esc(e.message)}`; }
+}
+
+function render() {
+  const F = D.families, fams = Object.entries(F);
+  $("#ver").textContent = `${D.version} · versions tried: ${D.versions_tried}`;
+  $("#edge").textContent = n(D.min_edge_r, 2);
+  const ph = D.phase === "live" ? `live since ${new Date(D.live_since * 1000).toLocaleString()}` : D.phase.startsWith("online") ? D.phase : `${D.phase} ${D.progress ? Math.round(D.progress * 100) + "%" : ""}`;
+  $("#phase").innerHTML = esc(ph) + (D.error ? ` · <span class="warn">${esc(D.error)}</span>` : "");
+  const trusted = fams.filter(([, f]) => f.trusted);
+  const all = fams.reduce((a, [, f]) => (a.n += f.all.n || 0, a.s += (f.all.mean_r || 0) * (f.all.n || 0), a), {n: 0, s: 0});
+  const picks = fams.reduce((a, [, f]) => (a.n += f.picks.n || 0, a.s += (f.picks.mean_r || 0) * (f.picks.n || 0), a), {n: 0, s: 0});
+  const hb = D.books.history, lb = D.books.live;
+  $("#note").innerHTML = (trusted.length
+      ? `<p><b>${trusted.length} setup${trusted.length > 1 ? "s are" : " is"} trusted</b> (${trusted.map(([, f]) => esc(f.name)).join(", ")}): their picks show as <span class="st RECOMMENDED">RECOMMENDED</span>. Still paper only.</p>`
+      : `<p><b>No setup has earned trust yet, so nothing is RECOMMENDED.</b> The model's picks show as <span class="st UNPROVEN">UNPROVEN</span>: they are its best current guesses, recorded so they can prove themselves. Don't put real money behind them.</p>`) +
+    `<p>What the evidence says so far: across ${n(all.n, 0)} candidates, the five setups lost <b>${n(all.n ? all.s / all.n : 0)} R</b> per idea after Delta's fees + GST. The model learned to skip most of them: its ${n(picks.n, 0)} picks averaged <b>${r(picks.n ? picks.s / picks.n : 0)}</b>. Following them at 0.25% risk made ${usd(hb.equity - 10000)} in the history replay (worst drawdown ${n(hb.max_dd_pct, 1)}%) and ${usd(lb.equity - 10000)} live so far.</p>` +
+    `<p class="mute">Why so strict: a Delta round trip costs ${n(D.fees_bp.ETHUSD.taker * 2 + 2, 1)} bp with market orders, while BTC/ETH move a median ~3 bp a minute, so every idea needs a 50+ bp target and most still lose. A setup is trusted only after ≥${D.trust.min_picks} scored picks with net > 0, t ≥ ${D.trust.min_t} and profit factor ≥ ${D.trust.min_pf}. Learning changes the model's weights only, never the stops, targets, costs or risk limits.</p>`;
+  const coin = s => { const c = D.coins[s]; return `<div class="tile"><span>${s.slice(0, 3)} price · regime</span><b>${px(c.price, s)}</b><i>${esc(c.regime || "warming up")} · candle ${esc((c.last_candle || "").slice(11))} UTC</i></div>`; };
+  $("#tiles").innerHTML = coin("BTCUSD") + coin("ETHUSD") +
+    `<div class="tile"><span>Ideas open</span><b>${D.open.filter(x => PICK.has(x.status)).length}</b><i>${D.open.length} incl. shadow candidates</i></div>` +
+    `<div class="tile"><span>Outcomes learned from</span><b>${n(all.n, 0)}</b><i>history replay + live</i></div>` +
+    `<div class="tile"><span>Model picks, avg net</span><b>${r(picks.n ? picks.s / picks.n : null)}</b><i>${n(picks.n, 0)} picks, scored before the outcome</i></div>` +
+    `<div class="tile"><span>Live account</span><b>${usd(lb.equity - 10000)}</b><i>${lb.n} closed · DD ${n(lb.max_dd_pct, 1)}%</i></div>` +
+    `<div class="tile"><span>Trusted setups</span><b>${trusted.length} of ${fams.length}</b><i>needs ≥${D.trust.min_picks} picks, t ≥ ${D.trust.min_t}</i></div>`;
+  ideas(); recs(); famTable(); famDetail(); book(); log(); liveTick();
+}
+
+function levels(x) {
+  return `<div class="lv"><span>Entry <b>${px(x.entry, x.symbol)}</b></span><span>Stop <b class="down">${px(x.stop, x.symbol)}</b> <span class="mute">(${n(x.stop_bp, 0)} bp)</span></span><span>Target <b class="up">${px(x.target, x.symbol)}</b> <span class="mute">(+${n(x.target_r * x.stop_bp, 0)} bp, ${x.target_r} R)</span></span><span>Time stop <b>${x.time_min} min</b></span>${x.size ? `<span>Size <b>${x.size.contracts}</b> contracts (${n(x.size.coins, 3)} ${x.symbol.slice(0, 3)}, $${n(x.size.notional_usd, 0)}), risk $${n(x.size.risk_usd)}</span>` : ""}</div>`;
+}
+
+function ideas() {
+  const card = (x, shadow) => {
+    const left = Math.max(0, Math.round((x.expires_t - D.now) / 60));
+    return `<div class="idea ${x.side}" style="${shadow ? "border-style:dashed;opacity:.9" : ""}"><div><b>${x.side} ${x.symbol}</b> · ${esc(x.family_name)} · <span class="st ${x.status}">${shadow ? "SKIPPED · shadow" : x.status}</span> <span class="mute">${esc(x.time_ist)} · ${left} min left · now ${r(x.mark_r)}</span> <button class="link" onclick="showCurrent('${x.symbol}')">Show on chart</button></div>
+      ${levels(x)}<p style="margin:4px 0">${esc(x.reasoning)}</p><p class="mute" style="margin:4px 0">Wrong if: ${esc(x.invalidation)}. Model score ${n(x.score * 100, 0)}%, expected ${r(x.exp_net_r)} after costs. ${esc(x.status_why || "")}</p></div>`;
+  };
+  const xs = D.open.filter(x => PICK.has(x.status)), sh = D.open.filter(x => !PICK.has(x.status) && x.entry);
+  $("#ideas").innerHTML = (xs.length ? xs.map(x => card(x, false)).join("")
+      : `<div class="empty">No trade open. The advisor checks both coins at every 1-minute close; standing aside is its usual answer, because most setups lose after costs.</div>`) +
+    (sh.length ? `<p class="mute" style="margin:10px 0 6px"><b>Being followed in the shadow (not trades):</b> setups that fired but the model skipped. They are drawn dashed on the chart and still teach the model when they finish.</p>` + sh.map(x => card(x, true)).join("") : "");
+}
+
+function showCurrent(sym) {
+  if (sym !== SYM) { SYM = sym; $$("[data-sym]").forEach(x => x.classList.toggle("on", x.dataset.sym === sym)); loadTrades(); }
+  WIN = null; SEL = null; $("#sel").innerHTML = ""; $("#latest").classList.add("on"); history.replaceState(null, "", location.pathname);
+  $("#chartPanel").scrollIntoView({behavior: "smooth"});
+  drawChart(true);
+}
+
+function recs() {
+  const xs = (D.recs || []).filter(x => SHOW === "all" || PICK.has(x.status));
+  $("#recs").innerHTML = xs.length ? xs.map(x => {
+    const res = x.outcome ? `${r(x.net_r)}${x.pnl_usd != null ? ` <span class="mute">${usd(x.pnl_usd)}</span>` : ""}` : (x.mark_r != null ? `<span class="mute">now</span> ${r(x.mark_r)}` : "–");
+    const row = `<tr class="rec" data-id="${x.id}"><td class="l">${esc(x.time_ist)}</td><td class="l">${x.symbol.slice(0, 3)}</td><td class="l">${esc(x.family_name)}</td><td class="l ${x.side === "BUY" ? "up" : "down"}">${x.side}</td><td class="l"><span class="st ${x.status}">${x.status}</span></td><td>${px(x.entry, x.symbol)}</td><td>${px(x.stop, x.symbol)}</td><td>${px(x.target, x.symbol)}</td><td>${n(x.score * 100, 0)}%</td><td>${r(x.exp_net_r)}</td><td class="l">${x.outcome ? OUT[x.outcome] : "open"}</td><td>${res}</td></tr>`;
+    return row + (OPEN_ID === x.id ? `<tr class="det"><td colspan="12">${detail(x)}</td></tr>` : "");
+  }).join("") : `<tr><td colspan="12" class="empty l">${SRC === "live" ? (SHOW === "picks" ? "No model picks since going live yet. Switch to “All candidates” to see what it skipped and why." : "No candidates since going live yet.") : "No history records."}</td></tr>`;
+  $$("tr.rec").forEach(tr => tr.onclick = () => { OPEN_ID = OPEN_ID === tr.dataset.id ? null : tr.dataset.id; recs(); });
+}
+
+function detail(x) {
+  const E = x.explanation, f = x.features || {}, P = x.path || {};
+  const feat = [["Close", px(f.c, x.symbol)], ["1-hour high / low", `${px(f.hi60, x.symbol)} / ${px(f.lo60, x.symbol)}`], ["4-hour high / low", `${px(f.hi240, x.symbol)} / ${px(f.lo240, x.symbol)}`],
+    ["VWAP (today, UTC)", px(f.vwap, x.symbol)], ["1-hour / 4-hour average", `${px(f.ema60, x.symbol)} / ${px(f.ema240, x.symbol)}`], ["5-minute ATR", `${n(f.atr5_bp, 1)} bp`],
+    ["Squeeze ratio (15 min vs 4 h vol)", n(f.compression, 2)], ["Volume vs last hour", `${n(f.relvol, 1)}×`], ["Volatility (4 h, annualized)", `${n(f.rv240, 0)}%`],
+    ["1-hour momentum", `${n(f.mom60_bp, 0)} bp`], ["Regime", esc(x.regime)], ["Spread at signal", `${n(x.spread_bp, 2)} bp`]];
+  const costs = x.costs_bp || {};
+  return `<div class="det">
+    <p><span class="st ${x.status}">${x.status}</span> ${esc(x.status_why || "")} ${["RECOMMENDED", "UNPROVEN"].includes(x.status) && x.entry ? `<button class="link" onclick="event.stopPropagation(); showTrade('${x.id}', '${x.symbol}')">Show on chart</button>` : ""}</p>
+    <h4>Why this idea</h4><p>${esc(x.reasoning)}</p><p class="mute">Setup idea: ${esc(x.hypothesis)}</p><p>Wrong if: ${esc(x.invalidation)}</p>
+    ${x.entry ? levels(x) : `<p class="mute">Entry fills at the next candle's open (history replay).</p>`}
+    <h4>Market data at the signal (${esc(x.time_utc)} UTC)</h4><div class="kv">${feat.map(([k, v]) => `<div><span>${k}</span> ${v}</div>`).join("")}</div>
+    <h4>Model</h4><p>Score ${n(x.score * 100, 1)}% of the way to target on average → expected ${r(x.exp_gross_r)} before costs, ${r(x.exp_net_r)} after (costs: entry ${n(costs.entry, 1)} bp, exit ${n(costs.exit_target, 1)} bp at target or ${n(costs.exit_taker, 1)} bp at stop/time). Trained on ${n(x.model_n, 0)} earlier outcomes.</p>
+    <p>${x.helps && x.helps.length ? "Raised by: " + esc(x.helps.join(", ")) + ". " : ""}${x.hurts && x.hurts.length ? "Lowered by: " + esc(x.hurts.join(", ")) + "." : ""}</p>
+    ${E ? `<h4>Result: ${esc(E.headline)}</h4><ul>${E.why.map(w => `<li>${esc(w)}</li>`).join("")}<li>${esc(E.costs)}</li><li>${esc(E.model)}</li></ul><h4>What changed in the algorithm</h4><p>${esc(E.learned)}</p>`
+        : `<h4>Still open</h4><p>Best so far ${n((P.mfe_bp || 0) / x.stop_bp, 2)} R, worst ${n((P.mae_bp || 0) / x.stop_bp, 2)} R after ${P.bars || 0} min.</p>`}
+  </div>`;
+}
+
+function famTable() {
+  const F = D.families;
+  $("#fams").innerHTML = Object.entries(F).map(([k, f]) => `<tr><td class="l"><b>${esc(f.name)}</b></td><td class="l mute" style="max-width:340px">${esc(f.hypothesis)}</td><td>${n(f.learned, 0)}</td><td>${r(f.all.mean_r)}</td><td>${n(f.picks.n, 0)}</td><td>${r(f.picks.mean_r)}</td><td>${n(f.picks.t, 2)}</td><td>${n(f.picks.pf, 2)}</td><td>${n(f.live_picks.n, 0)}${f.live_picks.n ? ` · ${r(f.live_picks.mean_r)}` : ""}</td><td class="l">${f.trusted ? `<span class="st RECOMMENDED">trusted</span>` : `<span class="st UNPROVEN">not yet</span>`} <span class="mute">${esc(f.trust_why)}</span></td></tr>`).join("");
+  const sel = $("#famSel");
+  if (!sel.options.length) { sel.innerHTML = Object.entries(F).map(([k, f]) => `<option value="${k}">${esc(f.name)}</option>`).join(""); FAM = sel.value; sel.onchange = () => { FAM = sel.value; famDetail(); }; }
+}
+
+function famDetail() {
+  const f = D.families[FAM]; if (!f) return;
+  const mx = Math.max(...f.weights.map(w => Math.abs(w[2])), 1e-6);
+  $("#weights").innerHTML = f.weights.slice().sort((a, b) => Math.abs(b[2]) - Math.abs(a[2])).map(([k, label, w, d]) =>
+    `<tr><td class="l">${esc(label)}<div class="bar"><i style="width:${Math.abs(w) / mx * 100}%;background:${w >= 0 ? "var(--up)" : "var(--down)"}"></i></div></td><td class="${w > 0 ? "up" : w < 0 ? "down" : ""}">${w > 0 ? "+" : ""}${n(w, 3)}</td><td class="mute">${d ? (d > 0 ? "+" : "") + n(d, 4) : "0"}</td></tr>`).join("");
+  $("#calib").innerHTML = f.calib.filter(c => c[1]).map(([lo, cnt, exp, got]) => `<tr><td class="l">${Math.round(lo * 100)}–${Math.round(lo * 100 + 10)}%</td><td>${n(cnt, 0)}</td><td>${r(exp)}</td><td>${r(got)}</td></tr>`).join("") || `<tr><td colspan="4" class="empty l">No outcomes yet.</td></tr>`;
+}
+
+let eqChart = null, eqSeries = null;
+function book() {
+  const b = D.books[BOOK];
+  $("#bookInfo").textContent = `${b.n} closed picks · ${b.open} open · equity $${n(b.equity)} · worst drawdown ${n(b.max_dd_pct, 1)}%`;
+  if (!window.LightweightCharts) return;
+  if (!eqChart) {
+    eqChart = LightweightCharts.createChart($("#eq"), {autoSize: true, layout: {background: {color: "#ffffff"}, textColor: "#5f6875"}, grid: {vertLines: {visible: false}, horzLines: {color: "#eef0f4"}}, rightPriceScale: {borderVisible: false}, timeScale: {borderVisible: false, timeVisible: true}});
+    eqSeries = eqChart.addLineSeries({color: "#1f5eea", lineWidth: 2, priceFormat: {type: "price", precision: 0, minMove: 1}});
+  }
+  const pts = [], seen = new Set();
+  for (const [t, v] of b.curve) { if (!seen.has(t)) { seen.add(t); pts.push({time: t, value: v}); } }
+  eqSeries.setData(pts.sort((a, c) => a.time - c.time));
+  eqChart.timeScale().fitContent();
+}
+
+function log() {
+  const L = D.log || [];
+  $("#log").innerHTML = L.length ? L.map(l => `<p style="margin:4px 0;border-bottom:1px solid var(--line);padding-bottom:4px"><span class="mute">${esc(l.time_ist)}</span> <b>${esc(D.families[l.family].name)}</b> ${l.symbol.slice(0, 3)} · ${OUT[l.outcome]} ${r(l.net_r)} → score for that situation ${n(l.score_before * 100, 0)}% → ${n(l.score_after * 100, 0)}% <span class="mute">(${l.changes.map(c => `${c[0]} ${c[1] > 0 ? "+" : ""}${n(c[1], 4)}`).join(", ")}; trained on ${n(l.model_n, 0)})</span></p>`).join("")
+    : `<div class="empty">No live outcomes yet. Each one appears here with how it moved the model.</div>`;
+}
+
+// ---- the chart: every trade the account took, drawn as a position box (green = entry to target, red = entry to stop) ----
+class TradeBoxes {
+  constructor() {    // boxes under the candles; exit dots and labels on top so the candles never hide them
+    this.trades = []; this.sel = null;
+    this.views = [{zOrder: () => "bottom", renderer: () => ({draw: t => this.draw(t, false)})}, {zOrder: () => "top", renderer: () => ({draw: t => this.draw(t, true)})}];
+  }
+  attached(p) { this.chart = p.chart; this.series = p.series; this.req = p.requestUpdate; }
+  detached() {}
+  updateAllViews() {}
+  paneViews() { return this.views; }
+  autoscaleInfo(from, to) {  // stretch the price axis so every box in view (stop and target) is fully visible
+    const B = this.bars;
+    if (!this.trades.length || !B || !B.length) return null;
+    const tAt = i => i < 0 ? B[0].time + i * 60 : i >= B.length ? B[B.length - 1].time + (i - B.length + 1) * 60 : B[Math.floor(i)].time;
+    const lo = tAt(from), hi = tAt(to);
+    const ps = this.trades.filter(t => t.t <= hi && t.end >= lo).flatMap(t => [t.stop, t.target]);
+    return ps.length ? {priceRange: {minValue: Math.min(...ps), maxValue: Math.max(...ps)}} : null;
+  }
+  set(trades, sel, bars) { this.trades = trades; this.sel = sel; this.bars = bars; if (this.req) this.req(); }
+  x(t) {
+    const ts = this.chart.timeScale(), B = this.bars;
+    const x = ts.timeToCoordinate(t);
+    if (x !== null) return x;
+    if (!B.length) return null;
+    const first = B[0].time, last = B[B.length - 1].time;
+    return ts.logicalToCoordinate(t < first ? (t - first) / 60 : t > last ? B.length - 1 + (t - last) / 60 : Math.round((t - first) / 60));
+  }
+  draw(target, topLayer) {
+    if (!this.chart || !this.bars) return;
+    target.useBitmapCoordinateSpace(({context: ctx, horizontalPixelRatio: hr, verticalPixelRatio: vr}) => {
+      const Y = p => this.series.priceToCoordinate(p);
+      const order = this.trades.slice().sort((a, b) => (a.id === this.sel) - (b.id === this.sel));
+      for (const t of order) {
+        let x1 = this.x(t.t), x2 = this.x(t.end);
+        const ye = Y(t.entry), ys = Y(t.stop), yt = Y(t.target);
+        if (x1 == null || x2 == null || ye == null || ys == null || yt == null) continue;
+        x2 = Math.max(x2, x1 + 3);
+        const on = t.id === this.sel, dim = this.sel && !on, sh = t.shadow, live = !t.outcome;
+        const X1 = Math.round(x1 * hr), W = Math.round((x2 - x1) * hr);
+        const top = Math.round(Math.min(yt, ys) * vr), H = Math.round(Math.abs(yt - ys) * vr);
+        if (topLayer) { this.overlay(ctx, hr, vr, t, Y, X1, x1, x2, top, H, on, dim, sh, live); continue; }
+        ctx.fillStyle = `rgba(11,138,74,${on ? .32 : dim ? .08 : sh ? .09 : .18})`;
+        ctx.fillRect(X1, Math.round(Math.min(ye, yt) * vr), W, Math.round(Math.abs(yt - ye) * vr));
+        ctx.fillStyle = `rgba(204,43,34,${on ? .28 : dim ? .07 : sh ? .08 : .15})`;
+        ctx.fillRect(X1, Math.round(Math.min(ye, ys) * vr), W, Math.round(Math.abs(ys - ye) * vr));
+        const lw = Math.max(1, Math.round((on || (live && !sh) ? 2 : 1) * vr));
+        if (sh) {                 // a skipped candidate being followed in the shadow: dashed, never a trade
+          ctx.setLineDash([5 * hr, 4 * hr]); ctx.strokeStyle = "#5f6875"; ctx.lineWidth = lw;
+          ctx.strokeRect(X1, top, W, H);
+          ctx.strokeStyle = "#1f5eea"; ctx.beginPath(); ctx.moveTo(X1, Math.round(ye * vr)); ctx.lineTo(X1 + W, Math.round(ye * vr)); ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          ctx.fillStyle = dim ? "rgba(31,94,234,.35)" : "#1f5eea";
+          ctx.fillRect(X1, Math.round(ye * vr - lw / 2), W, lw);
+          if (on || live) { ctx.strokeStyle = live ? "#1f5eea" : "#14171c"; ctx.lineWidth = Math.max(1, Math.round((live ? 2 : 1) * vr)); ctx.strokeRect(X1, top, W, H); }
+        }
+      }
+    });
+  }
+  overlay(ctx, hr, vr, t, Y, X1, x1, x2, top, H, on, dim, sh, live) {
+    if (t.exit_t && t.exit_px) {
+      const cx = this.x(t.exit_t - 60), cy = Y(t.exit_px);
+      if (cx != null && cy != null) {
+        ctx.beginPath(); ctx.arc(cx * hr, cy * vr, (on ? 5 : 4) * hr, 0, Math.PI * 2);
+        ctx.fillStyle = t.outcome === "target" ? "#0b8a4a" : t.outcome === "stop" ? "#cc2b22" : "#8a919c";
+        ctx.globalAlpha = dim ? .45 : 1; ctx.fill(); ctx.lineWidth = 2 * hr; ctx.strokeStyle = "#ffffff"; ctx.stroke(); ctx.globalAlpha = 1;
+      }
+    }
+    if ((x2 - x1) <= 46 || dim) return;
+    const sg = x => `${x > 0 ? "+" : ""}${(x || 0).toFixed(2)} R`;
+    const text = `${sh ? "SKIPPED (shadow) · " : ""}${t.side} · ${t.outcome ? sg(t.net_r) : `OPEN · now ${sg(t.mark_r)}`}`;
+    ctx.font = `${on || live ? 600 : 500} ${Math.round(11 * vr)}px -apple-system, Segoe UI, sans-serif`;
+    const inside = H > 22 * vr;          // inside the box, clear of the price lines on its edges; above it when the box is thin
+    const w = ctx.measureText(text).width, h = 15 * vr, x = X1 + 4 * hr, y = inside ? top + 4 * vr : top - h - 3 * vr;
+    ctx.fillStyle = "rgba(255,255,255,.88)"; ctx.fillRect(x - 3 * hr, y, w + 6 * hr, h);
+    ctx.fillStyle = sh ? "#5f6875" : live ? "#1f5eea" : "#14171c"; ctx.textBaseline = "top";
+    ctx.fillText(text, x, y + 2 * vr);
+  }
+}
+
+let chart = null, candles = null, boxes = null, BARS = [], TR = [], SEL = null, WIN = null, SHADOW = true, CUR = null, PLINES = [], DT = [];
+const OUTS = {target: "Target hit", stop: "Stopped out", time: "Time stop"};
+
+function ensureChart() {
+  if (chart || !window.LightweightCharts) return !!chart;
+  chart = LightweightCharts.createChart($("#chart"), {autoSize: true, layout: {background: {color: "#ffffff"}, textColor: "#5f6875"}, grid: {vertLines: {visible: false}, horzLines: {color: "#eef0f4"}},
+    rightPriceScale: {borderVisible: false}, crosshair: {mode: 0},
+    timeScale: {borderVisible: false, timeVisible: true, secondsVisible: false, rightOffset: 20,
+      tickMarkFormatter: (t, type) => { const d = new Date((t + 19800) * 1000); return type <= 2 ? `${d.getUTCDate()} ${"Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ")[d.getUTCMonth()]}` : d.toISOString().slice(11, 16); }},
+    localization: {timeFormatter: t => new Date((t + 19800) * 1000).toISOString().slice(5, 16).replace("T", " ") + " IST"}});
+  candles = chart.addCandlestickSeries({upColor: "#0b8a4a", downColor: "#cc2b22", wickUpColor: "#0b8a4a", wickDownColor: "#cc2b22", borderVisible: false});
+  boxes = new TradeBoxes();
+  candles.attachPrimitive(boxes);
+  chart.subscribeClick(p => {
+    if (!p.time || !p.point) return;
+    const price = candles.coordinateToPrice(p.point.y);
+    const hit = BARS.length && TR.filter(t => t.t <= p.time && p.time <= t.end && price <= Math.max(t.stop, t.target) && price >= Math.min(t.stop, t.target));
+    if (hit && hit.length) selectTrade(hit[0].id, false);
+  });
+  return true;
+}
+
+function paintBoxes() {
+  if (!boxes) return;
+  const shown = DT.filter(t => SHADOW || !t.shadow);
+  boxes.set(shown, SEL, BARS);
+  PLINES.forEach(l => candles.removePriceLine(l)); PLINES = [];
+  if (WIN) return;
+  for (const t of shown.filter(x => !x.outcome)) {      // current items: entry, stop and target labelled on the price axis
+    const tag = t.shadow ? "shadow " : "";
+    PLINES.push(candles.createPriceLine({price: t.entry, color: "#1f5eea", lineStyle: t.shadow ? 2 : 0, lineWidth: 1, axisLabelVisible: true, title: `${tag}${t.side} entry`}));
+    PLINES.push(candles.createPriceLine({price: t.stop, color: "#cc2b22", lineStyle: 2, lineWidth: 1, axisLabelVisible: true, title: `${tag}stop`}));
+    PLINES.push(candles.createPriceLine({price: t.target, color: "#0b8a4a", lineStyle: 2, lineWidth: 1, axisLabelVisible: true, title: `${tag}target`}));
+  }
+}
+
+function liveTick() {          // the minute still forming, from the live price (replaced by Delta's candle once it closes)
+  if (!candles || WIN || !BARS.length || !D) return;
+  const price = D.coins[SYM] && D.coins[SYM].price, last = BARS[BARS.length - 1];
+  const m = Math.floor(Date.now() / 60000) * 60;
+  if (!price || m <= last.time || BARS.sym !== SYM) return;
+  if (!CUR || CUR.sym !== SYM || CUR.time !== m) CUR = {sym: SYM, time: m, open: last.close, high: Math.max(last.close, price), low: Math.min(last.close, price), close: price};
+  else CUR = {...CUR, high: Math.max(CUR.high, price), low: Math.min(CUR.low, price), close: price};
+  candles.update({time: CUR.time, open: CUR.open, high: CUR.high, low: CUR.low, close: CUR.close});
+}
+
+let REQ = 0, FIT = false;
+function goToNow() {             // the latest 4 hours, the price axis fitted to what is on screen
+  chart.priceScale("right").applyOptions({autoScale: true});
+  chart.timeScale().setVisibleLogicalRange({from: Math.max(0, BARS.length - 240), to: BARS.length + 20});
+}
+
+async function drawChart(fit) {
+  if (!ensureChart()) { $("#chartInfo").textContent = "chart library unavailable"; return; }
+  FIT = FIT || fit;                // a fit asked for by an older request still happens if a newer one wins
+  const my = ++REQ, sym = SYM, win = WIN;
+  try {
+    const q = win ? `&start=${win.start}&end=${win.end}` : "";
+    const d = await (await fetch(`/api/advisor/bars?symbol=${sym}${q}`)).json();
+    if (my !== REQ || sym !== SYM || win !== WIN) return;    // a newer request (or a coin switch) superseded this one
+    BARS = d.bars; BARS.sym = sym; candles.setData(BARS);
+    const last = BARS.length ? BARS[BARS.length - 1].time : 0;
+    if (CUR && CUR.sym === sym && !win && CUR.time > last) candles.update({time: CUR.time, open: CUR.open, high: CUR.high, low: CUR.low, close: CUR.close}); else CUR = null;
+    DT = d.trades;
+    paintBoxes();
+    const t = TR.find(x => x.id === SEL);
+    if (FIT) {
+      FIT = false;
+      chart.priceScale("right").applyOptions({autoScale: true});
+      if (t) chart.timeScale().setVisibleRange({from: t.t - 75 * 60, to: Math.min(last || t.end, t.end + 40 * 60)});
+      else if (!win) goToNow();
+      else chart.timeScale().fitContent();
+    }
+    const taken = d.trades.filter(x => !x.shadow), cur = d.trades.filter(x => !x.outcome);
+    const nowTxt = cur.length ? ` · current: ${cur.map(x => `${x.shadow ? "skipped " : ""}${x.side} ${x.family_name}`).join(", ")}` : " · nothing open right now";
+    $("#chartInfo").textContent = WIN ? `around the selected trade · ${taken.length} trade${taken.length === 1 ? "" : "s"} in view`
+      : `latest ${Math.round(BARS.length / 60)} h (last 4 h shown; scroll left for more) · ${taken.length} trade${taken.length === 1 ? "" : "s"}${nowTxt}`;
+  } catch (e) { $("#chartInfo").textContent = "chart unavailable: " + e.message; }
+}
+
+async function loadTrades() {
+  try { TR = await (await fetch(`/api/advisor/trades?symbol=${SYM}`)).json(); } catch (e) { return; }
+  const closed = TR.filter(t => t.outcome), won = closed.filter(t => t.net_r > 0).length;
+  $("#tcount").textContent = `${TR.length} · ${closed.length ? Math.round(won / closed.length * 100) + "% won" : ""}`;
+  $("#tlist").innerHTML = TR.length ? TR.map(t => `<div class="titem ${t.id === SEL ? "on" : ""}" data-id="${t.id}">
+      <div><b class="${t.side === "BUY" ? "up" : "down"}">${t.side}</b> · ${esc(t.family_name)} <span class="mute">· ${t.source === "history" ? "replay" : "live"}</span></div>
+      <div class="mute">${esc(t.time_ist)}${t.exit_time_ist ? " → " + esc(t.exit_time_ist.replace(/^\d+ \w+ /, "")) : ""}</div>
+      <div>${t.outcome ? OUTS[t.outcome] : `<span class="st UNPROVEN">open</span>`} · ${t.outcome ? r(t.net_r) : r(t.mark_r)}${t.pnl_usd != null ? ` <span class="mute">${usd(t.pnl_usd)}</span>` : ""}</div></div>`).join("")
+    : `<div class="empty">No trades taken yet for ${SYM.slice(0, 3)}.</div>`;
+  $$(".titem").forEach(el => el.onclick = () => selectTrade(el.dataset.id, true));
+}
+
+async function selectTrade(id, move) {
+  const t = TR.find(x => x.id === id); if (!t) return;
+  SEL = id;
+  history.replaceState(null, "", `#trade=${t.symbol}:${id}`);
+  const inWin = !WIN && BARS.length && t.t >= BARS[0].time;
+  if (move && !inWin) WIN = {start: t.t - 180 * 60, end: Math.max(t.end, t.t) + 120 * 60};
+  $("#latest").classList.toggle("on", !WIN);
+  $$(".titem").forEach(el => el.classList.toggle("on", el.dataset.id === id));
+  const el = document.querySelector(`.titem[data-id="${id}"]`); if (el) el.scrollIntoView({block: "nearest"});
+  const E = t.explanation;
+  $("#sel").innerHTML = `<div><b class="${t.side === "BUY" ? "up" : "down"}">${t.side} ${t.symbol}</b> · ${esc(t.family_name)} · <span class="st ${t.status}">${t.status}</span> <span class="mute">${t.source === "history" ? "history replay" : "live"} · ${esc(t.time_ist)}</span></div>
+    <div class="lv" style="display:flex;flex-wrap:wrap;gap:4px 18px;margin:6px 0"><span>Entry <b>${px(t.entry, t.symbol)}</b></span><span>Stop <b class="down">${px(t.stop, t.symbol)}</b> <span class="mute">(−${n(t.stop_bp, 0)} bp)</span></span><span>Target <b class="up">${px(t.target, t.symbol)}</b> <span class="mute">(+${n(t.stop_bp * t.target_r, 0)} bp)</span></span>
+    <span>${t.outcome ? `Exit <b>${px(t.exit_px, t.symbol)}</b> · ${OUTS[t.outcome]} after ${Math.round((t.exit_t - t.t) / 60)} min · ${r(t.net_r)}${t.pnl_usd != null ? " " + usd(t.pnl_usd) : ""}` : `open · now ${r(t.mark_r)}`}</span></div>
+    <p style="margin:4px 0">${esc(t.reasoning)}</p>
+    ${E ? `<p style="margin:4px 0"><b>${esc(E.headline)}</b> ${E.why.map(esc).join(" ")}</p><p class="mute" style="margin:4px 0">${esc(E.costs)} ${esc(E.model)}</p><p class="mute" style="margin:4px 0">${esc(E.learned)}</p>` : ""}`;
+  await drawChart(true);
+}
+
+function step(dir) {
+  if (!TR.length) return;
+  const i = TR.findIndex(x => x.id === SEL);
+  const j = i < 0 ? 0 : Math.max(0, Math.min(TR.length - 1, i + dir));
+  selectTrade(TR[j].id, true);
+}
+
+async function showTrade(id, sym) {
+  if (sym !== SYM) { SYM = sym; $$("[data-sym]").forEach(x => x.classList.toggle("on", x.dataset.sym === sym)); WIN = null; await loadTrades(); }
+  $("#chartPanel").scrollIntoView({behavior: "smooth"});
+  selectTrade(id, true);
+}
+
+$$("[data-sym]").forEach(b => b.onclick = async () => { SYM = b.dataset.sym; SEL = null; WIN = null; CUR = null; history.replaceState(null, "", location.pathname); $("#sel").innerHTML = ""; $("#latest").classList.add("on"); $$("[data-sym]").forEach(x => x.classList.toggle("on", x === b)); await loadTrades(); drawChart(true); });
+$("#latest").onclick = () => { history.replaceState(null, "", location.pathname); WIN = null; SEL = null; $("#sel").innerHTML = ""; $("#latest").classList.add("on"); $$(".titem").forEach(el => el.classList.remove("on")); drawChart(true); };
+$("#shadowBtn").onclick = () => { SHADOW = !SHADOW; $("#shadowBtn").classList.toggle("on", SHADOW); paintBoxes(); };
+$("#olderT").onclick = () => step(1);
+$("#newerT").onclick = () => step(-1);
+$$("[data-src]").forEach(b => b.onclick = () => { SRC = b.dataset.src; OPEN_ID = null; $$("[data-src]").forEach(x => x.classList.toggle("on", x === b)); load(); });
+$$("[data-show]").forEach(b => b.onclick = () => { SHOW = b.dataset.show; $$("[data-show]").forEach(x => x.classList.toggle("on", x === b)); if (D) recs(); });
+$$("[data-book]").forEach(b => b.onclick = () => { BOOK = b.dataset.book; $$("[data-book]").forEach(x => x.classList.toggle("on", x === b)); if (D) book(); });
+load();
+const HASH = decodeURIComponent(location.hash).match(/^#trade=(BTCUSD|ETHUSD):(.+)$/);   // a link straight to one trade
+if (HASH) { SYM = HASH[1]; $$("[data-sym]").forEach(x => x.classList.toggle("on", x.dataset.sym === SYM)); loadTrades().then(() => selectTrade(HASH[2], true)); }
+else loadTrades().then(() => drawChart(true));
+setInterval(() => { if (SRC === "live") load(); }, 5000);
+setInterval(() => { if (!WIN) drawChart(false); }, 10000);
+setInterval(loadTrades, 30000);
+</script>
+</body>
+</html>
