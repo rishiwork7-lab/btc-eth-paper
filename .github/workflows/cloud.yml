@@ -9,8 +9,8 @@ on:
   # that starts between 17:00 and 18:12 UTC stays up through it, so Fridays get several extra chances in that hour.
   schedule:
     - cron: '7,22,37,52 * * * *'
-    - cron: '3,13,26,33,43,48,56 17 * * 5'
-    - cron: '1,4 18 * * 5'
+    - cron: '2,12,17,27,32,42,47,57 17 * * 5'    # with the line above: a chance every 5 min, 17:02-18:07 UTC
+    - cron: '2 18 * * 5'
   workflow_dispatch:
 
 permissions:
