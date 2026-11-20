@@ -11,6 +11,7 @@ from pathlib import Path
 
 OPT_HTML = Path(__file__).with_name("options.html")
 ADV_HTML = Path(__file__).with_name("advisor.html")
+BRK_HTML = Path(__file__).with_name("breakout.html")
 
 
 CANDLE_CACHE: dict = {}
@@ -56,6 +57,11 @@ def serve(engine, port: int, books=None, advisor=None):
                 return
             if self.path in ("/options", "/options/") or self.path.startswith(("/strategy/", "/coin/")):
                 return self._send(200, OPT_HTML.read_bytes(), "text/html; charset=utf-8")
+            if self.path in ("/breakout", "/breakout/"):
+                return self._send(200, BRK_HTML.read_bytes(), "text/html; charset=utf-8")
+            if self.path.startswith("/api/breakout"):
+                f = engine.root / "backtest" / "breakout.json"
+                return self._send(200, f.read_bytes(), "application/json") if f.exists() else self._send(404, b'{"error": "run breakout_backtest.py"}', "application/json")
             if self.path in ("/advisor", "/advisor/"):
                 return self._send(200, ADV_HTML.read_bytes(), "text/html; charset=utf-8")
             if self.path.startswith("/api/advisor"):

@@ -58,6 +58,7 @@
     const u = new URL(url, location.origin), q = Object.fromEntries(u.searchParams);
     try {
       if (u.pathname === "/api/options") return reply(await data("options.json"));
+      if (u.pathname === "/api/breakout") return reply(await data("breakout.json"));
       if (u.pathname === "/api/candles") return reply(await deltaCandles(q.symbol, q.resolution, +q.start, +q.end));
       if (u.pathname === "/api/advisor/trades") return reply(await data(`trades_${q.symbol || "BTCUSD"}.json`));
       if (u.pathname === "/api/advisor/bars") return reply(await bars(q.symbol || "BTCUSD", +q.start || 0, +q.end || 0));
@@ -72,7 +73,7 @@
   const fix = a => {
     const h = a.getAttribute("href");
     if (!h || !h.startsWith("/")) return;
-    a.setAttribute("href", h === "/advisor" ? "advisor.html" : h === "/options" ? "index.html" : `index.html#${h}`);
+    a.setAttribute("href", h === "/advisor" ? "advisor.html" : h === "/breakout" ? "breakout.html" : h === "/options" ? "index.html" : `index.html#${h}`);
   };
   const fixAll = root => root.querySelectorAll && root.querySelectorAll('a[href^="/"]').forEach(fix);
   document.addEventListener("DOMContentLoaded", () => {
@@ -84,5 +85,5 @@
     bar.textContent = `Online copy · paper only · books and advisor updated every ~15 min by GitHub (last: ${S.updated_utc}); prices and candles are live from Delta.`;
     document.body.prepend(bar);
   });
-  if (!location.pathname.endsWith("advisor.html")) window.addEventListener("hashchange", () => location.reload());   // the portfolio page reads its route once
+  if (!/(advisor|breakout)\.html$/.test(location.pathname)) window.addEventListener("hashchange", () => location.reload());   // the portfolio page reads its route once
 })();

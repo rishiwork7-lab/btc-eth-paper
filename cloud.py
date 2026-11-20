@@ -78,7 +78,7 @@ def build_site(eng: Engine, books: list, adv: Advisor, run_note: str):
     now = time.time()
     meta = {"updated": int(now), "updated_utc": utc(now) + " UTC", "note": run_note}
     inject = f'<script>window.STATIC_SITE = {json.dumps(meta)};</script>\n<script src="static.js"></script>\n'
-    for src, dst in (("options.html", "index.html"), ("advisor.html", "advisor.html")):
+    for src, dst in (("options.html", "index.html"), ("advisor.html", "advisor.html"), ("breakout.html", "breakout.html")):
         html = (ROOT / "scalper" / src).read_text()
         (SITE / dst).write_text(html.replace("<head>\n", "<head>\n" + inject, 1))
     shutil.copy(ROOT / "static.js", SITE / "static.js")
@@ -87,6 +87,7 @@ def build_site(eng: Engine, books: list, adv: Advisor, run_note: str):
     def put(name, obj):
         (SITE / "data" / name).write_text(json.dumps(obj, default=str, separators=(",", ":")))
     put("options.json", options_payload(eng, books))
+    shutil.copy(ROOT / "backtest" / "breakout.json", SITE / "data" / "breakout.json")   # breakout_backtest.py, run locally
     adv.phase = f"online · updated {meta['updated_utc']}, every ~15 min"
     put("advisor.json", adv.view("live"))
     put("advisor_history.json", adv.view("history"))

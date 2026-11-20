@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakout Scalp Backtest</title>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+:root{color-scheme:light;--bg:#f7f8fb;--card:#ffffff;--ink:#14171c;--mute:#5f6875;--line:#e3e7ee;--up:#0b8a4a;--down:#cc2b22;--accent:#1f5eea;--warn:#a35a00;--chip:#eaf0ff;--gross:#1f5eea;--net:#d97706}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:1320px;margin:0 auto;padding:16px}a{color:var(--accent)}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:12px}h1{font-size:21px;margin:0}h2{font-size:15px;margin:0 0 10px}
+.badge{background:var(--chip);color:var(--accent);border-radius:999px;padding:2px 10px;font-weight:600;font-size:12px}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}nav a{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 14px;text-decoration:none;font-weight:500}
+nav a.on{border-color:var(--accent);background:var(--chip);color:var(--accent);font-weight:600}
+.note{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--down);border-radius:8px;padding:10px 14px;margin-bottom:14px}.note p{margin:5px 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;margin-bottom:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}.tile>span{display:block;color:var(--mute);font-size:12px}
+.tile b{display:block;font-size:20px;margin:2px 0}.tile i{font-style:normal;color:var(--mute);font-size:12px}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:14px}.grid2>*{min-width:0}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+th{color:var(--mute);font-weight:500;font-size:12px}td.l,th.l{text-align:left}.wide{overflow-x:auto}
+tr.pick{cursor:pointer}tr.pick:hover td{background:#f3f6fc}tr.on td{background:var(--chip)}
+.up{color:var(--up)}.down{color:var(--down)}.mute{color:var(--mute)}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}.seg button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer;font:inherit}
+.seg button.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+.chart{height:340px;width:100%}.key{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;color:var(--mute);margin-top:4px}
+.key i{display:inline-block;width:18px;height:0;border-top:2px solid;vertical-align:middle;margin-right:5px}
+.steps{margin:6px 0;padding-left:20px}.steps li{margin:3px 0}
+@media (max-width:520px){.grid2{grid-template-columns:1fr}main{padding:12px}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Breakout scalp: backtest</h1><span class="badge">BTC & ETH · Delta Exchange · 1-minute and 5-minute candles · backtest only</span></header>
+<nav><a href="/options">Overview</a><a href="/coin/BTC">BTC</a><a href="/coin/ETH">ETH</a><a href="/advisor">1-min advisor</a><a href="/breakout" class="on">Breakout scalp</a></nav>
+<div class="note" id="note">Loading…</div>
+
+<div class="panel">
+  <h2>The rule (fixed before testing; nothing tuned on the result)</h2>
+  <ol class="steps">
+    <li>Before each candle opens, a <b>buy-stop</b> sits at the previous candle's high and a <b>sell-stop</b> at its low.</li>
+    <li>If the candle trades <b>above the previous high → long</b> there; <b>below the previous low → short</b> there. If it opens beyond a level, the fill is the open.</li>
+    <li><b>Book the trade on the next candle:</b> exit at the close of the next candle. One trade at a time.</li>
+    <li>A candle that breaks <b>both</b> levels is skipped: 1-minute candles cannot tell which break came first.</li>
+  </ol>
+  <p class="mute" id="costs"></p>
+</div>
+
+<div class="panel">
+  <h2>Result for each coin and candle size <span class="mute" style="font-weight:400">(click a row for its details)</span></h2>
+  <div class="wide"><table><thead><tr><th class="l">Market</th><th>Trades</th><th>Per day</th><th>Before costs, avg</th><th>t (before costs)</th><th>Costs per trade</th><th>After costs, avg</th><th>Won after costs</th><th>Profit factor</th><th>$10,000 account at 1×</th></tr></thead><tbody id="summary"></tbody></table></div>
+</div>
+
+<div class="seg" id="seg"></div>
+<div class="tiles" id="tiles"></div>
+<div class="grid2">
+  <div class="panel">
+    <h2 id="chartTitle">Every trade added up</h2>
+    <div id="chart" class="chart"></div>
+    <div class="key"><span><i style="border-color:var(--gross)"></i>before costs</span><span><i style="border-color:var(--net)"></i>after Delta's fees, spread and slippage</span><span>each trade = $10,000 notional, added up without compounding</span></div>
+  </div>
+  <div class="panel"><h2>Month by month</h2><div class="wide"><table><thead><tr><th class="l">Month</th><th>Trades</th><th>Before costs</th><th>After costs</th></tr></thead><tbody id="months"></tbody></table></div></div>
+</div>
+<div class="grid2">
+  <div class="panel"><h2>Is it the same everywhere?</h2><table><thead><tr><th class="l">Slice</th><th>Trades</th><th>Avg after costs</th><th>Won</th></tr></thead><tbody id="slices"></tbody></table></div>
+  <div class="panel"><h2>Close variants (context only, not to pick a winner)</h2><table><thead><tr><th class="l">Variant</th><th>Trades</th><th>Before costs</th><th>After costs</th></tr></thead><tbody id="variants"></tbody></table></div>
+</div>
+<p class="mute">Code: <code>breakout_backtest.py</code> (writes <code>backtest/breakout.json</code>). Same Delta 1-minute candles as the advisor; 5-minute candles are built from them.</p>
+</main>
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const n = (x, d = 2) => x == null || isNaN(x) ? "–" : Number(x).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const bp = (x, d = 2) => x == null ? "–" : `<span class="${x > 0 ? "up" : x < 0 ? "down" : ""}">${x > 0 ? "+" : ""}${n(x, d)} bp</span>`;
+const usd = x => `<span class="${x > 0 ? "up" : x < 0 ? "down" : ""}">${x < 0 ? "−" : "+"}$${n(Math.abs(x), 0)}</span>`;
+const NAME = {BTCUSD: "BTC", ETHUSD: "ETH"};
+const label = k => { const [s, tf] = k.split("_"); return `${NAME[s]} · ${tf === "1m" ? "1-minute" : "5-minute"}`; };
+let D = null, SEL = "BTCUSD_1m", chart = null, gs = null, ns = null;
+
+async function load() {
+  try {
+    D = await (await fetch("/api/breakout")).json();
+    if (D.error) throw new Error(D.error);
+    render();
+  } catch (e) { $("#note").innerHTML = `Backtest data unavailable: ${esc(e.message)}`; }
+}
+
+function render() {
+  const R = D.results, keys = Object.keys(R), c = D.costs;
+  const worst = keys.map(k => R[k].rule.net.avg_bp), best = keys.map(k => R[k].rule.gross.avg_bp);
+  $("#note").innerHTML = `<p><b>Verdict: this rule loses money on every market and both candle sizes.</b> Before costs it is slightly positive (${n(Math.min(...best))} to ${n(Math.max(...best))} bp a trade, the same in every month), but a Delta round trip costs about ${n(R.BTCUSD_1m.rule.costs_bp.total, 0)} bp, so after costs every trade averages ${n(Math.max(...worst))} to ${n(Math.min(...worst))} bp. A real $10,000 account trading it at 1× would lose half its money in about <b>${n(R.BTCUSD_1m.rule.account.half_after_days, 1)} days on 1-minute candles</b> and <b>${n(R.BTCUSD_5m.rule.account.half_after_days, 1)} days on 5-minute candles</b>.</p>
+    <p>Even with <b>zero fees</b> the 1-minute version still loses (spread and slippage alone are bigger than its edge); the fee per side at which the 5-minute version would break even is about ${n(R.BTCUSD_5m.rule.breakeven_fee_bp_per_side, 2)} bp, against Delta's ${n(c.taker_fee_pct * (1 + c.gst_pct / 100) * 100, 2)} bp. No fee tier closes that gap. Period: ${D.period.from} to ${D.period.to} (${D.days} days), computed ${esc(D.generated_utc)} UTC.</p>`;
+  $("#costs").innerHTML = `Costs on every trade: Delta's taker fee ${c.taker_fee_pct}% + ${c.gst_pct}% GST on entry and on exit (a stop order and a market exit both take liquidity), half the spread (BTC ${c.half_spread_bp.BTCUSD} bp, ETH ${c.half_spread_bp.ETHUSD} bp) and ${c.slippage_bp} bp slippage each way. Funding is ignored: trades last one or two candles.`;
+  $("#summary").innerHTML = keys.map(k => { const r = R[k].rule;
+    return `<tr class="pick ${k === SEL ? "on" : ""}" data-k="${k}"><td class="l"><b>${label(k)}</b></td><td>${n(r.trades, 0)}</td><td>${n(r.per_day, 0)}</td><td>${bp(r.gross.avg_bp)}</td><td>${n(r.gross.t, 1)}</td><td>${n(r.costs_bp.total, 1)} bp</td><td>${bp(r.net.avg_bp)}</td><td>${n(r.net.win_pct, 1)}%</td><td>${n(r.net.pf, 2)}</td><td>half gone in <b>${n(r.account.half_after_days, 1)} days</b></td></tr>`; }).join("");
+  $$("tr.pick").forEach(tr => tr.onclick = () => { SEL = tr.dataset.k; render(); });
+  $("#seg").innerHTML = keys.map(k => `<button data-k="${k}" class="${k === SEL ? "on" : ""}">${label(k)}</button>`).join("");
+  $$("#seg button").forEach(b => b.onclick = () => { SEL = b.dataset.k; render(); });
+  detail();
+}
+
+function detail() {
+  const X = D.results[SEL], r = X.rule;
+  $("#tiles").innerHTML = [
+    ["Trades", n(r.trades, 0), `${n(r.per_day, 0)} a day · ${n(r.skipped_both, 0)} candles skipped (both levels broken)`],
+    ["Before costs, per trade", bp(r.gross.avg_bp), `t ${n(r.gross.t, 1)}: small but real`],
+    ["Costs, per trade", `${n(r.costs_bp.total, 1)} bp`, `fees ${n(r.costs_bp.fees, 1)} + spread & slippage ${n(r.costs_bp.spread_and_slippage, 1)}`],
+    ["After costs, per trade", bp(r.net.avg_bp), `won ${n(r.net.win_pct, 1)}% · profit factor ${n(r.net.pf, 2)}`],
+    ["$10,000 at 1×, compounding", `half in ${n(r.account.half_after_days, 1)} d`, `after ${n(r.account.half_after_trades, 0)} trades; $${n(r.account.end_usd, 0)} at the end`],
+    ["Break-even fee per side", `${n(r.breakeven_fee_bp_per_side, 2)} bp`, `${r.breakeven_fee_bp_per_side < 0 ? "below zero: it loses even with no fees; " : ""}Delta charges ${n(D.costs.taker_fee_pct * (1 + D.costs.gst_pct / 100) * 100, 2)} bp`],
+  ].map(([a, b, c]) => `<div class="tile"><span>${a}</span><b>${b}</b><i>${c}</i></div>`).join("");
+  $("#chartTitle").textContent = `${label(SEL)}: every trade added up`;
+  $("#months").innerHTML = r.months.map(([m, cnt, g, nt]) => `<tr><td class="l">${m}</td><td>${n(cnt, 0)}</td><td class="${g > 0 ? "up" : "down"}">${g > 0 ? "+" : ""}${n(g, 1)}%</td><td class="${nt > 0 ? "up" : "down"}">${n(nt, 1)}%</td></tr>`).join("") +
+    `<tr><td class="l mute" colspan="4">% = sum of the month's trades, each on $10,000 notional (not compounded).</td></tr>`;
+  const sl = [["Longs", r.long], ["Shorts", r.short], ["First half of the period", r.first_half], ["Second half", r.second_half]];
+  $("#slices").innerHTML = sl.map(([a, s]) => `<tr><td class="l">${a}</td><td>${n(s.n, 0)}</td><td>${bp(s.avg_bp)}</td><td>${n(s.win_pct, 1)}%</td></tr>`).join("");
+  const VN = {lb1_same: "Exit at the close of the breakout candle itself", lb5_next: "“Recent” = highest high / lowest low of 5 candles", lb20_next: "“Recent” = 20 candles"};
+  $("#variants").innerHTML = `<tr><td class="l"><b>The rule</b> (previous candle, exit next candle)</td><td>${n(r.trades, 0)}</td><td>${bp(r.gross.avg_bp)}</td><td>${bp(r.net.avg_bp)}</td></tr>` +
+    Object.entries(X.variants).map(([k, v]) => `<tr><td class="l">${VN[k] || k}</td><td>${n(v.trades, 0)}</td><td>${bp(v.gross.avg_bp)}</td><td>${bp(v.net.avg_bp)}</td></tr>`).join("");
+  draw(r.curve);
+}
+
+function draw(curve) {
+  if (!window.LightweightCharts) return;
+  if (!chart) {
+    chart = LightweightCharts.createChart($("#chart"), {autoSize: true, layout: {background: {color: "#ffffff"}, textColor: "#5f6875"}, grid: {vertLines: {visible: false}, horzLines: {color: "#eef0f4"}},
+      rightPriceScale: {borderVisible: false}, timeScale: {borderVisible: false}, localization: {priceFormatter: p => `${p > 0 ? "+" : p < 0 ? "−" : ""}$${Math.abs(Math.round(p)).toLocaleString("en-US")}`}});
+    gs = chart.addLineSeries({color: "#1f5eea", lineWidth: 2, title: "before costs"});
+    ns = chart.addLineSeries({color: "#d97706", lineWidth: 2, title: "after costs"});
+  }
+  const pts = (i) => { const seen = new Set(), out = []; for (const row of curve) { if (!seen.has(row[0])) { seen.add(row[0]); out.push({time: row[0], value: row[i] * 100}); } } return out; };
+  gs.setData(pts(1)); ns.setData(pts(2));     // % of $10,000 -> dollars
+  chart.timeScale().fitContent();
+}
+
+load();
+</script>
+</body>
+</html>
