@@ -4,9 +4,13 @@ name: Paper books and 1-minute advisor
 # step the books, let the advisor catch up on every closed 1-minute candle and learn, then publish the website.
 # State (two small SQLite files) lives on the 'state' branch, replaced on every run. Paper only: there is no API key.
 on:
+  # GitHub starts scheduled runs late under load (seen: every 40-75 min, not 15), and round minutes are the most delayed.
+  # The advisor does not mind (each run catches up on every missed candle). The Friday 18:00 UTC condor entry does: any run
+  # that starts between 17:00 and 18:12 UTC stays up through it, so Fridays get several extra chances in that hour.
   schedule:
-    - cron: '*/15 * * * *'
-    - cron: '20 17 * * 5'      # Friday 17:20 UTC: one more chance to be up for the 18:00 UTC condor entry
+    - cron: '7,22,37,52 * * * *'
+    - cron: '3,13,26,33,43,48,56 17 * * 5'
+    - cron: '1,4 18 * * 5'
   workflow_dispatch:
 
 permissions:
