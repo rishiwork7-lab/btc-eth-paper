@@ -4,7 +4,10 @@ name: Paper books and 1-minute advisor
 # step the books, let the advisor catch up on every closed 1-minute candle and learn, then publish the website.
 # State (two small SQLite files) lives on the 'state' branch, replaced on every run. Paper only: there is no API key.
 on:
-  # GitHub starts scheduled runs late under load (seen: every 40-75 min, not 15), and round minutes are the most delayed.
+  # Main trigger (from 2026-11-20): an external timer (cron-job.org) POSTs every 15 min to
+  #   https://api.github.com/repos/rishiwork7-lab/btc-eth-paper/actions/workflows/cloud.yml/dispatches  body {"ref":"main"}
+  # with a fine-grained token limited to this repository (Actions: read and write). The schedule below is only a backup.
+  # GitHub starts scheduled runs late under load (seen: gaps of 40-120 min, not 15), and round minutes are the most delayed.
   # The advisor does not mind (each run catches up on every missed candle). The Friday 18:00 UTC condor entry does: any run
   # that starts between 17:00 and 18:12 UTC stays up through it, so Fridays get several extra chances in that hour.
   schedule:

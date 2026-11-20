@@ -2,7 +2,8 @@
 
 ## Online copy: https://rishiwork7-lab.github.io/btc-eth-paper/ (from 2026-11-19)
 
-GitHub Actions (`.github/workflows/cloud.yml`) runs `cloud.py` every ~15 minutes, so the paper record continues while this
+GitHub Actions (`.github/workflows/cloud.yml`) runs `cloud.py` every ~15 minutes (started by an external timer, cron-job.org, through
+GitHub's workflow-dispatch API, because GitHub's own schedule ran 40-120 minutes apart; the schedule stays as a backup), so the paper record continues while this
 computer is off: the books take one step (a run that starts on Friday from 17:00 UTC stays up, stepping every 15 s, until the
 18:00-18:10 UTC condor entry has passed), the advisor catches up on every closed 1-minute candle and learns, and the site is
 rebuilt (`site/`: the same two pages plus `static.js`, which maps their `/api` calls to `data/*.json` and to Delta's public API,
