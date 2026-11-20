@@ -82,7 +82,14 @@
       .observe(document.body, {childList: true, subtree: true});
     const S = window.STATIC_SITE, bar = document.createElement("div");
     bar.style.cssText = "background:#eaf0ff;color:#1f3a8a;font:13px/1.4 -apple-system,Segoe UI,sans-serif;padding:6px 16px;text-align:center";
-    bar.textContent = `Online copy · paper only · books and advisor updated every ~15 min by GitHub (last: ${S.updated_utc}); prices and candles are live from Delta.`;
+    const age = () => {
+      const m = Math.round((Date.now() / 1000 - S.updated) / 60);
+      bar.textContent = `Online copy · paper only · prices and candles are live from Delta; books and advisor were last updated ${m} min ago (${S.updated_utc})` +
+        (m > 45 ? ". GitHub starts these runs late at busy times (gaps of 40-90 min happen); ideas that start and finish between two runs appear under \"Recently finished\"." : ", by a GitHub run every 15-75 min.");
+      bar.style.background = m > 45 ? "#fff3e0" : "#eaf0ff";
+    };
+    age();
+    setInterval(age, 60000);
     document.body.prepend(bar);
   });
   if (!/(advisor|breakout)\.html$/.test(location.pathname)) window.addEventListener("hashchange", () => location.reload());   // the portfolio page reads its route once

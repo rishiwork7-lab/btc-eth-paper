@@ -183,3 +183,18 @@ def test_open_skipped_candidates_are_drawn_as_shadow_only_while_open(adv):
     assert [t["id"] for t in sh] == ["A-x"] and sh[0]["shadow"] is True
     adv._advance(rec, [T0, 2000.0, rec["target"] + 1, 1999.0, 2002.0, 100.0], None)
     assert adv.trades("ETHUSD", shadow=True) == []                      # resolved: no longer current
+
+
+def test_a_stale_live_quote_is_never_used_as_the_entry_price(tmp_path):
+    frozen = {"q": (1700.0, 1700.1, 600.0)}                       # last price seen 10 minutes ago (the feed died)
+    a = Advisor(tmp_path, FEES, LIMITS, quote=lambda s: frozen["q"], fetch=lambda *x: [])
+    bars = walk(420, seed=5)
+    for b in bars:
+        a.on_bar("ETHUSD", b, "live")
+    recs = [x for k, x in list(a.out.queue) if k == "rec"]
+    assert recs and all(r["entry"] is None or abs(r["entry"] / r["signal_px"] - 1) < 0.01 for r in recs)
+    assert all(abs((r["entry"] or r["signal_px"]) - 1700.1) > 1 for r in recs)     # never the frozen 1700.1
+    frozen["q"] = (bars[-1][4] - 0.05, bars[-1][4] + 0.05, 0.3)                  # a fresh quote is used as before
+    a.on_bar("ETHUSD", [bars[-1][0] + 60, bars[-1][4], bars[-1][4] * 1.02, bars[-1][4] * 0.999, bars[-1][4] * 1.019, 500.0], "live")
+    new = [x for k, x in list(a.out.queue) if k == "rec" and x["t"] == bars[-1][0] + 120]
+    assert all(r["entry"] is not None for r in new)

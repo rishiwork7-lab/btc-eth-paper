@@ -75,7 +75,7 @@ button.link{border:1px solid var(--accent);background:var(--card);color:var(--ac
   <div class="ctl"><h2 style="margin:0 8px 0 0">Record: every idea and why</h2>
     <button data-src="live" class="on">Live</button><button data-src="history">History replay (latest 150)</button>
     <span style="width:10px"></span>
-    <button data-show="picks" class="on">Model picks</button><button data-show="all">All candidates</button>
+    <button data-show="picks">Model picks</button><button data-show="all" class="on">All candidates</button>
     <span class="mute">Click a row for the full reasoning, the market data at entry, why it worked or failed, and what the model learned.</span></div>
   <div class="scroll"><table><thead><tr><th class="l">Time (IST)</th><th class="l">Coin</th><th class="l">Setup</th><th class="l">Side</th><th class="l">Status</th><th>Entry</th><th>Stop</th><th>Target</th><th>Model score</th><th>Expected</th><th class="l">Outcome</th><th>Result</th></tr></thead><tbody id="recs"></tbody></table></div>
 </div>
@@ -105,7 +105,7 @@ const r = (x, d = 2) => x == null ? "–" : `<span class="${x > 0 ? "up" : x < 0
 const usd = x => x == null ? "–" : `<span class="${x > 0 ? "up" : x < 0 ? "down" : ""}">${x < 0 ? "−" : x > 0 ? "+" : ""}$${n(Math.abs(x))}</span>`;
 const PICK = new Set(["RECOMMENDED", "UNPROVEN", "BLOCKED"]);
 const OUT = {target: "Target hit", stop: "Stopped out", time: "Time stop"};
-let D = null, SRC = "live", SHOW = "picks", SYM = "ETHUSD", BOOK = "live", FAM = null, OPEN_ID = null, H = null;
+let D = null, SRC = "live", SHOW = "all", SYM = "ETHUSD", BOOK = "live", FAM = null, OPEN_ID = null, H = null;
 
 async function load() {
   try {
@@ -150,12 +150,16 @@ function ideas() {
   const card = (x, shadow) => {
     const left = Math.max(0, Math.round((x.expires_t - D.now) / 60));
     return `<div class="idea ${x.side}" style="${shadow ? "border-style:dashed;opacity:.9" : ""}"><div><b>${x.side} ${x.symbol}</b> · ${esc(x.family_name)} · <span class="st ${x.status}">${shadow ? "SKIPPED · shadow" : x.status}</span> <span class="mute">${esc(x.time_ist)} · ${left} min left · now ${r(x.mark_r)}</span> <button class="link" onclick="showCurrent('${x.symbol}')">Show on chart</button></div>
-      ${levels(x)}<p style="margin:4px 0">${esc(x.reasoning)}</p><p class="mute" style="margin:4px 0">Wrong if: ${esc(x.invalidation)}. Model score ${n(x.score * 100, 0)}%, expected ${r(x.exp_net_r)} after costs. ${esc(x.status_why || "")}</p></div>`;
+      ${x.entry ? levels(x) : `<p class="mute" style="margin:6px 0">Entry fills at the open of the next 1-minute candle (signal price ${px(x.signal_px, x.symbol)}); stop ${n(x.stop_bp, 0)} bp and target ${n(x.target_r * x.stop_bp, 0)} bp from it.</p>`}<p style="margin:4px 0">${esc(x.reasoning)}</p><p class="mute" style="margin:4px 0">Wrong if: ${esc(x.invalidation)}. Model score ${n(x.score * 100, 0)}%, expected ${r(x.exp_net_r)} after costs. ${esc(x.status_why || "")}</p></div>`;
   };
-  const xs = D.open.filter(x => PICK.has(x.status)), sh = D.open.filter(x => !PICK.has(x.status) && x.entry);
+  const xs = D.open.filter(x => PICK.has(x.status)), sh = D.open.filter(x => !PICK.has(x.status));
+  const done = (D.recs || []).filter(x => x.outcome).slice(0, 8);
   $("#ideas").innerHTML = (xs.length ? xs.map(x => card(x, false)).join("")
       : `<div class="empty">No trade open. The advisor checks both coins at every 1-minute close; standing aside is its usual answer, because most setups lose after costs.</div>`) +
-    (sh.length ? `<p class="mute" style="margin:10px 0 6px"><b>Being followed in the shadow (not trades):</b> setups that fired but the model skipped. They are drawn dashed on the chart and still teach the model when they finish.</p>` + sh.map(x => card(x, true)).join("") : "");
+    (sh.length ? `<p class="mute" style="margin:10px 0 6px"><b>Being followed in the shadow (not trades):</b> setups that fired but the model skipped. They are drawn dashed on the chart and still teach the model when they finish.</p>` + sh.map(x => card(x, true)).join("") : "") +
+    (done.length ? `<p class="mute" style="margin:12px 0 4px"><b>Recently finished</b> (every idea, picked or skipped; click one in the record below for the full story)</p>
+      <div class="wide"><table><thead><tr><th class="l">Signal (IST)</th><th class="l">Idea</th><th class="l">Status</th><th class="l">How it ended</th><th>Result after costs</th></tr></thead><tbody>${done.map(x =>
+        `<tr><td class="l">${esc(x.time_ist)}</td><td class="l"><b class="${x.side === "BUY" ? "up" : "down"}">${x.side}</b> ${x.symbol.slice(0, 3)} · ${esc(x.family_name)}</td><td class="l"><span class="st ${x.status}">${x.status}</span></td><td class="l">${esc((x.explanation || {}).headline || OUT[x.outcome])}</td><td>${r(x.net_r)}</td></tr>`).join("")}</tbody></table></div>` : "");
 }
 
 function showCurrent(sym) {

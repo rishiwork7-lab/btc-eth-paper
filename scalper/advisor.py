@@ -580,7 +580,8 @@ class Advisor:
         exp_gross = score * (T + 1) - 1
         live = source == "live"
         q = self.quote(sym) if (live and self.quote) else None
-        spread = bp(q[1], q[0]) if q and q[0] and q[1] else SPREAD_BP[sym]
+        fresh = bool(q and q[0] and q[1] and q[2] <= self.limits["max_l1_age_s"])   # a frozen feed (e.g. after sleep) is never a price
+        spread = bp(q[1], q[0]) if fresh else SPREAD_BP[sym]
         cost = self._costs(sym, spread)
         exp_cost_r = (cost["entry"] + score * cost["exit_target"] + (1 - score) * cost["exit_taker"]) / R
         exp_net = exp_gross - exp_cost_r
@@ -615,9 +616,9 @@ class Advisor:
                 ok, why_trust = self.trusted(fam)
                 status, why_status = ("RECOMMENDED", why_trust) if ok else ("UNPROVEN", "not trusted yet: " + why_trust)
                 risk_usd = book.open(f["tc"])
-        entry = None
-        if live:
-            entry = (q[1] if side > 0 else q[0]) * (1 + side * self.slip / 1e4) if q else f["c"] * (1 + side * (spread / 2 + self.slip) / 1e4)
+        entry = None                               # None: fills at the next candle's open (replay, cloud, or a stale live quote)
+        if live and fresh:
+            entry = (q[1] if side > 0 else q[0]) * (1 + side * self.slip / 1e4)
         rec = {"id": rid, "t": int(f["tc"]), "time_utc": utc(f["tc"]), "time_ist": ist(f["tc"]), "source": source, "version": VERSION,
                "symbol": sym, "family": fam, "family_name": p["name"], "hypothesis": p["hypothesis"], "side": "BUY" if side > 0 else "SELL",
                "dir": side, "status": status, "status_why": why_status, "signal_px": f["c"], "entry": entry, "stop_bp": round(R, 2),
