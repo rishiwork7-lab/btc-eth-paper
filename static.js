@@ -59,6 +59,7 @@
     try {
       if (u.pathname === "/api/options") return reply(await data("options.json"));
       if (u.pathname === "/api/breakout") return reply(await data("breakout.json"));
+      if (u.pathname === "/api/deploy") return reply(await data("deploy.json"));
       if (u.pathname === "/api/candles") return reply(await deltaCandles(q.symbol, q.resolution, +q.start, +q.end));
       if (u.pathname === "/api/advisor/trades") return reply(await data(`trades_${q.symbol || "BTCUSD"}.json`));
       if (u.pathname === "/api/advisor/bars") return reply(await bars(q.symbol || "BTCUSD", +q.start || 0, +q.end || 0));
@@ -73,7 +74,7 @@
   const fix = a => {
     const h = a.getAttribute("href");
     if (!h || !h.startsWith("/")) return;
-    a.setAttribute("href", h === "/advisor" ? "advisor.html" : h === "/breakout" ? "breakout.html" : h === "/options" ? "index.html" : `index.html#${h}`);
+    a.setAttribute("href", h === "/advisor" ? "advisor.html" : h === "/breakout" ? "breakout.html" : h === "/deploy" ? "deploy.html" : h === "/signals" ? "signals.html" : h === "/options" ? "index.html" : `index.html#${h}`);
   };
   const fixAll = root => root.querySelectorAll && root.querySelectorAll('a[href^="/"]').forEach(fix);
   document.addEventListener("DOMContentLoaded", () => {
@@ -92,5 +93,5 @@
     setInterval(age, 60000);
     document.body.prepend(bar);
   });
-  if (!/(advisor|breakout)\.html$/.test(location.pathname)) window.addEventListener("hashchange", () => location.reload());   // the portfolio page reads its route once
+  if (!/(advisor|breakout|deploy|signals)\.html$/.test(location.pathname)) window.addEventListener("hashchange", () => location.reload());   // the portfolio page reads its route once
 })();

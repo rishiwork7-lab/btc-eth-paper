@@ -202,7 +202,8 @@ class FridayCondor:
     def trend_avg(self, now: float) -> float | None:
         """Average ETH index price at 00:00 UTC over the last 20 days (closes of the 20 completed daily candles)."""
         day0 = int(now // 86400 * 86400)
-        rows = self.fetch(f"{API}/v2/history/candles?resolution=1d&symbol=.DE{self.asset}USD&start={day0 - 21 * 86400}&end={day0}")["result"] or []
+        # (was ".DE{asset}USD": right for ETH, but BTC's index is .DEXBTUSD, so a BTC trend book could never have entered)
+        rows = self.fetch(f"{API}/v2/history/candles?resolution=1d&symbol={INDEX[self.asset]}&start={day0 - 21 * 86400}&end={day0}")["result"] or []
         closes = [float(r["close"]) for r in rows if day0 - 20 * 86400 <= int(r["time"]) <= day0 - 86400]
         return sum(closes) / 20 if len(closes) == 20 else None
 

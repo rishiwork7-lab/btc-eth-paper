@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weekend Signals</title>
+<style>
+:root{color-scheme:light;--bg:#f7f8fb;--card:#ffffff;--ink:#14171c;--mute:#5f6875;--line:#e3e7ee;--up:#0b8a4a;--down:#cc2b22;--accent:#1f5eea;--warn:#a35a00;--chip:#eaf0ff;
+  --buy-bg:#e6f5ec;--buy-ink:#0b6b3a;--sell-bg:#fdecea;--sell-ink:#a3221a;--enter:#0b8a4a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:1320px;margin:0 auto;padding:16px}a{color:var(--accent)}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:12px}h1{font-size:21px;margin:0}h2{font-size:15px;margin:0 0 10px}h3{font-size:16px;margin:0}
+.badge{background:var(--chip);color:var(--accent);border-radius:999px;padding:2px 10px;font-weight:600;font-size:12px}
+nav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}nav a{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:7px 14px;text-decoration:none;font-weight:500}
+nav a.on{border-color:var(--accent);background:var(--chip);color:var(--accent);font-weight:600}
+.status{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--mute);border-radius:10px;padding:12px 16px;margin-bottom:14px}
+.status.enter{border-left-color:var(--enter);background:#f1fbf5}.status.preview{border-left-color:var(--accent)}.status.holding{border-left-color:var(--warn)}
+.status .big{font-size:18px;font-weight:700;margin:0 0 4px}.status p{margin:4px 0}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.row{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center}
+label.cap{display:flex;align-items:center;gap:8px;font-weight:600}label.cap input{font:inherit;width:130px;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:10px;margin-bottom:14px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}.tile>span{display:block;color:var(--mute);font-size:12px}
+.tile b{display:block;font-size:19px;margin:2px 0}.tile i{font-style:normal;color:var(--mute);font-size:12px}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:middle}
+th{color:var(--mute);font-weight:500;font-size:12px}td.l,th.l{text-align:left}.wide{overflow-x:auto}
+.up{color:var(--up)}.down{color:var(--down)}.mute{color:var(--mute)}
+.act{display:inline-block;border-radius:6px;padding:1px 8px;font-weight:700;font-size:12px}.act.buy{background:var(--buy-bg);color:var(--buy-ink)}.act.sell{background:var(--sell-bg);color:var(--sell-ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px;min-width:0}
+.card-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;margin-bottom:6px}
+.rank{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;font-weight:700;font-size:13px}
+.coin{border-top:1px solid var(--line);padding-top:10px;margin-top:10px}.coin h4{margin:0 0 6px;font-size:14px}
+.sum{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px;margin-top:6px}.sum b{font-weight:600}
+code.sym{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:#f3f5f9;border-radius:5px;padding:1px 5px}
+button.copy{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:1px 6px;font-size:11px;cursor:pointer;margin-left:4px}
+.warn{color:var(--warn)}.steps{margin:6px 0;padding-left:20px}.steps li{margin:3px 0}
+@media (max-width:520px){main{padding:12px}}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Weekend signals</h1><span class="badge">The 4 deploy strategies · BTC & ETH options on Delta Exchange India · place orders yourself</span></header>
+<nav><a href="/options">Overview</a><a href="/coin/BTC">BTC</a><a href="/coin/ETH">ETH</a><a href="/advisor">1-min advisor</a><a href="/breakout">Breakout scalp</a><a href="/deploy">Deploy strategies</a><a href="/signals" class="on">Signals</a></nav>
+
+<div class="status" id="status">Loading prices from Delta and Deribit…</div>
+
+<div class="panel"><div class="row">
+  <label class="cap">Your capital (USD) <input id="capital" type="number" min="100" step="100" value="10000"></label>
+  <span class="mute">Sizes, premiums and worst cases below are for this amount. The whole weekend is capped at a <b>25%</b> worst case.</span>
+  <span style="flex:1"></span><span class="mute" id="updated"></span>
+</div></div>
+
+<div class="tiles" id="tiles"></div>
+
+<div class="panel">
+  <h2>Market at the signal</h2>
+  <div class="wide"><table><thead><tr><th class="l">Coin</th><th>Index price</th><th>Volatility (DVOL)</th><th>20-day average</th><th class="l">Trend</th><th class="l">Trend spreads sell</th><th class="l">Option chains</th></tr></thead><tbody id="market"></tbody></table></div>
+</div>
+
+<div class="panel">
+  <h2>How to place the orders on Delta</h2>
+  <ol class="steps">
+    <li>Place each position's orders <b>in the order listed</b>: the protective <b>BUY</b> legs first, then the <b>SELL</b> legs, so a sold option is never left uncovered.</li>
+    <li>Use <b>limit orders</b>. Sell at the limit shown or higher (it is 96% of Delta's mark); buy at the limit shown or lower (104% of mark). If a leg doesn't fill in ~5 minutes, move it closer to the mark; never chase further than the limit.</li>
+    <li>If a SELL leg cannot be filled, leave the bought protection (it costs little) and skip that position this week.</li>
+    <li><b>Exit: nothing to do.</b> Every position is held to expiry and Delta settles it automatically at 17:30 IST (Saturday or Sunday). Do not close early: the tested results hold to expiry.</li>
+  </ol>
+</div>
+
+<div id="cards"></div>
+<p class="mute" id="foot"></p>
+</main>
+<script src="signals_core.js"></script>
+<script>
+const SG = window.Signals;
+const DELTA = "https://api.india.delta.exchange", DERIBIT = "https://www.deribit.com/api/v2/public";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+const n = (x, d = 2) => x == null || isNaN(x) ? "–" : Number(x).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const usd = (x, d = 2) => x == null || isNaN(x) ? "–" : `<span class="${x > 0 ? "up" : x < 0 ? "down" : ""}">${x < 0 ? "−" : ""}$${n(Math.abs(x), d)}</span>`;
+const ist = ts => new Date(ts).toLocaleString("en-IN", {timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false}) + " IST";
+const dur = ms => { const m = Math.max(0, Math.round(ms / 60e3)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60); return (d ? d + " d " : "") + (h ? h + " h " : "") + (m % 60) + " min"; };
+const FALLBACK_SIZE = {C3: {BTC: 1.49, ETH: 1.76}, C6: {BTC: 1.93, ETH: 1.82}, C2: {BTC: 1.42, ETH: 1.31}, C1: {BTC: 1.22, ETH: 1.07}};
+let SIZE = null, LAST = null;
+
+async function j(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${r.status} ${url.split("?")[0]}`);
+  return r.json();
+}
+
+async function sizes() {
+  if (SIZE) return SIZE;
+  try {
+    const D = await j("/api/deploy");
+    SIZE = {}; for (const s of D.strategies) SIZE[s.code] = {BTC: s.coins.BTC.size_x, ETH: s.coins.ETH.size_x};
+  } catch (e) { SIZE = FALLBACK_SIZE; }
+  return SIZE;
+}
+
+async function chainOf(coin) {
+  const r = (await j(`${DELTA}/v2/tickers?contract_types=call_options,put_options&underlying_asset_symbols=${coin}`)).result || [];
+  const out = {};
+  for (const t of r) out[t.symbol] = {mark: +t.mark_price, bid: t.quotes && t.quotes.best_bid != null ? +t.quotes.best_bid : null, ask: t.quotes && t.quotes.best_ask != null ? +t.quotes.best_ask : null};
+  return out;
+}
+
+async function avg20(coin, at) {
+  const day0 = Math.floor(at / 86400e3) * 86400;
+  const r = (await j(`${DELTA}/v2/history/candles?resolution=1d&symbol=${SG.INDEX[coin]}&start=${day0 - 21 * 86400}&end=${day0}`)).result || [];
+  const c = r.filter(x => x.time >= day0 - 20 * 86400 && x.time <= day0 - 86400).map(x => +x.close);
+  return c.length === 20 ? c.reduce((a, b) => a + b, 0) / 20 : null;
+}
+
+async function dvol(coin, at, exactHour) {
+  const r = (await j(`${DERIBIT}/get_volatility_index_data?currency=${coin}&start_timestamp=${at - 6 * 3600e3}&end_timestamp=${at}&resolution=3600`)).result.data || [];
+  if (!r.length) return null;
+  if (exactHour) { const want = at - 3600e3, hit = r.find(x => +x[0] === want); if (hit) return +hit[4]; }
+  return +r[r.length - 1][4];
+}
+
+async function spotAt(coin, at) {                 // index price at a past minute (1-minute candle that closed at `at`)
+  const s = Math.floor(at / 1000);
+  const r = (await j(`${DELTA}/v2/history/candles?resolution=1m&symbol=${SG.INDEX[coin]}&start=${s - 300}&end=${s}`)).result || [];
+  const c = r.filter(x => x.time < s).sort((a, b) => a.time - b.time);
+  return c.length ? +c[c.length - 1].close : null;
+}
+
+async function markAt(sym, at) {
+  const s = Math.floor(at / 1000);
+  const r = (await j(`${DELTA}/v2/history/candles?resolution=1m&symbol=MARK:${sym}&start=${s - 600}&end=${s + 60}`)).result || [];
+  const c = r.filter(x => x.time <= s).sort((a, b) => a.time - b.time);
+  return c.length ? +c[c.length - 1].close : null;
+}
+
+const LISTED = {};
+/** Options of one expiry that were already listed at `entry` (Delta adds strikes later; an expired chain is not in tickers). */
+async function listedAtEntry(coin, code, expiry, entry) {
+  const state = Date.now() >= expiry ? "expired" : "live", key = `${coin}-${code}-${state}`;
+  if (LISTED[key]) return LISTED[key];
+  const out = {}, cut = new Date(entry).toISOString().replace(".000Z", "Z"), floor = new Date(entry - 6 * 86400e3).toISOString();
+  let after = null;
+  for (let pg = 0; pg < 8; pg++) {
+    const d = await j(`${DELTA}/v2/products?contract_types=call_options,put_options&states=${state}&underlying_asset_symbols=${coin}&page_size=500` + (after ? `&after=${encodeURIComponent(after)}` : ""));
+    for (const p of d.result || []) if (p.symbol.endsWith("-" + code) && p.launch_time <= cut) out[p.symbol] = {mark: null, bid: null, ask: null};
+    after = d.meta && d.meta.after;
+    const oldest = (d.result || []).reduce((a, p) => (p.launch_time < a ? p.launch_time : a), "9999");
+    if (!after || (state === "expired" && oldest < floor)) break;
+  }
+  return (LISTED[key] = out);
+}
+
+async function settleOf(coin, expiry) {          // Delta's rule: 30-minute index average before expiry
+  const e = Math.floor(expiry / 1000);
+  const r = (await j(`${DELTA}/v2/history/candles?resolution=1m&symbol=${SG.INDEX[coin]}&start=${e - 1800}&end=${e}`)).result || [];
+  const x = r.filter(c => c.time >= e - 1800 && c.time < e).map(c => +c.close);
+  return x.length >= 25 ? x.reduce((a, b) => a + b, 0) / x.length : null;
+}
+
+async function market(coin, now, ph, entry) {
+  if (ph === "holding") {                          // rebuild the signal exactly as issued at the entry
+    const [spot, vol, avg, chain] = await Promise.all([spotAt(coin, entry), dvol(coin, entry, true), avg20(coin, entry), chainOf(coin)]);
+    return {spot, dvol: vol, avg20: avg, chain, entry, live: chain};
+  }
+  const [t, vol, avg, chain] = await Promise.all([j(`${DELTA}/v2/tickers/${coin}USD`), dvol(coin, now, false), avg20(coin, entry), chainOf(coin)]);
+  return {spot: +t.result.spot_price, dvol: vol, avg20: avg, chain, entry};
+}
+
+async function load() {
+  const now = Date.now(), ph = SG.phase(now), entry = SG.entryTime(now);
+  const capital = Math.max(0, +$("#capital").value || 0);
+  try { localStorage.setItem("signals.capital", String(capital)); } catch (e) { /* storage blocked: fine */ }
+  const sz = await sizes();
+  const M = {};
+  for (const c of SG.COINS) M[c] = await market(c, now, ph, entry);
+  const positions = [];
+  for (const s of SG.STRATS) for (const c of SG.COINS) {
+    const m = M[c];
+    if (!m.spot || !m.dvol) { positions.push({s, coin: c, error: "market data unavailable"}); continue; }
+    let chain = m.chain;
+    if (ph === "holding") {
+      // rebuild the signal as issued: strikes from the options that were listed at entry, each leg priced at its mark at entry
+      const expiry = SG.expiryOf(entry, s.expiryDays), code = SG.expiryCode(expiry);
+      chain = {...await listedAtEntry(c, code, expiry, entry)};
+      const probe = SG.buildPosition(s, c, {...m, chain}, capital, sz[s.code][c]);
+      if (!probe.error) await Promise.all(probe.legs.map(async l => { chain[l.symbol] = {mark: await markAt(l.symbol, entry), bid: null, ask: null}; }));
+    }
+    const p = SG.buildPosition(s, c, {...m, chain}, capital, sz[s.code][c]);
+    if (!p.error && ph === "holding") {
+      p.now = p.legs.map(l => (m.live[l.symbol] || {}).mark ?? null);
+      if (Date.now() >= p.expiry) p.settle = await settleOf(c, p.expiry);
+    }
+    positions.push(p);
+  }
+  const cap = SG.applyCap(positions, capital);
+  LAST = {now, ph, entry, capital, M, positions, cap};
+  render();
+}
+
+function legsTable(p, ph) {
+  const live = ph === "holding";
+  return `<div class="wide"><table><thead><tr><th class="l">Step</th><th class="l">Action</th><th class="l">Option on Delta</th><th>Strike</th><th>Contracts</th>
+    <th>${live ? "Mark at entry" : "Mark"}</th>${live ? "<th>Mark now</th>" : "<th>Bid / Ask</th>"}<th>Limit price</th></tr></thead><tbody>${p.legs.map((l, i) => `<tr>
+      <td class="l">${i + 1}</td><td class="l"><span class="act ${l.side}">${l.side.toUpperCase()}</span> ${l.call ? "call" : "put"}</td>
+      <td class="l"><code class="sym">${esc(l.symbol)}</code><button class="copy" data-c="${esc(l.symbol)}">copy</button>${!l.listed && !live ? ' <span class="warn">not listed yet</span>' : ""}</td>
+      <td>${n(l.strike, 0)}</td><td><b>${n(p.contracts, 0)}</b></td><td>${n(l.mark)}</td>
+      ${live ? `<td>${n(p.now ? p.now[i] : null)}</td>` : `<td>${n(l.bid)} / ${n(l.ask)}</td>`}
+      <td>${l.limit == null ? "–" : `${l.side === "sell" ? "≥" : "≤"} ${n(l.limit)}`}</td></tr>`).join("")}</tbody></table></div>`;
+}
+
+function result(p) {
+  if (!p.priced || !p.units) return "";
+  const credit = p.credit * p.units;
+  if (p.settle != null) {
+    const owed = p.legs.reduce((a, l) => a + (l.side === "sell" ? 1 : -1) * Math.max(0, l.call ? p.settle - l.strike : l.strike - p.settle), 0) * p.units;
+    return `<span>Settled at <b>${n(p.settle)}</b> → result <b>${usd(credit - owed - p.fees)}</b></span>`;
+  }
+  if (p.now && p.now.every(x => x != null)) {
+    const cost = p.legs.reduce((a, l, i) => a + (l.side === "sell" ? 1 : -1) * p.now[i], 0) * p.units;
+    return `<span>Open P&L now <b>${usd(credit - cost - p.fees)}</b></span>`;
+  }
+  return "";
+}
+
+function render() {
+  const {now, ph, entry, capital, M, positions, cap} = LAST;
+  const ok = positions.filter(p => !p.error && p.contracts > 0);
+  const credit = ok.reduce((a, p) => a + (p.creditUsd || 0), 0), fees = ok.reduce((a, p) => a + (p.fees || 0), 0);
+  const allListed = ok.length && ok.every(p => p.listed);
+  const S = $("#status");
+  S.className = "status " + ph;
+  S.innerHTML = ph === "enter"
+    ? `<p class="big">ENTER NOW: the window closes at ${esc(ist(entry + 30 * 60e3))} (in ${dur(entry + 30 * 60e3 - now)})</p><p>Place the ${ok.length} positions below with limit orders, protective legs first. Prices refresh every 30 seconds.</p>`
+    : ph === "preview"
+    ? `<p class="big">Next signal: ${esc(ist(entry))} (in ${dur(entry - now)})</p><p>This is a <b>preview at current prices</b>: strikes, premiums and sizes will change by Friday. ${allListed ? "" : "Delta lists the weekend expiries a few days ahead; until then the strikes are targets on Delta's usual grid and premiums show as –."} Nothing to do until the window opens.</p>`
+    : `<p class="big">Holding this weekend's positions: entered ${esc(ist(entry))}</p><p>Nothing to do. These are the signals as issued at entry (prices from Delta's mark history), with live P&L. Saturday positions settle ${esc(ist(SG.expiryOf(entry, 1)))}, Sunday positions ${esc(ist(SG.expiryOf(entry, 2)))}. The next signal is ${esc(ist(entry + 7 * 86400e3))}.</p>`;
+  $("#updated").textContent = "Updated " + new Date(now).toLocaleTimeString("en-IN", {timeZone: "Asia/Kolkata", hour12: false}) + " IST";
+  $("#tiles").innerHTML = [
+    ["Positions", `${ok.length} / 8`, cap.scale < 1 ? `sized down to ${n(cap.scale * 100, 0)}% by the cap` : "full size"],
+    ["Premium collected", allListed || ph === "holding" ? usd(credit) : "–", "at mark, all positions"],
+    ["Fees (est.)", allListed || ph === "holding" ? usd(-fees) : "–", "Delta options fee + GST"],
+    ["Worst case, whole weekend", usd(-cap.total, 0), `${n(cap.total / capital * 100, 1)}% of capital (cap 25%)`],
+  ].map(([t, b, i]) => `<div class="tile"><span>${t}</span><b>${b}</b><i>${esc(i)}</i></div>`).join("");
+  $("#market").innerHTML = SG.COINS.map(c => { const m = M[c], up = m.avg20 != null ? m.spot > m.avg20 : null;
+    const codes = [...new Set(positions.filter(p => p.coin === c && p.code).map(p => p.code))];
+    const listed = codes.map(code => { const p = positions.find(x => x.coin === c && x.code === code);
+      return `${code}: ${p && Date.now() >= p.expiry ? "expired, settled" : Object.keys(m.live || m.chain).some(s => s.endsWith("-" + code)) ? "listed" : "not listed yet"}`; }).join(" · ");
+    return `<tr><td class="l"><b>${c}</b></td><td>${n(m.spot)}</td><td>${n(m.dvol, 1)}%</td><td>${n(m.avg20)}</td>
+      <td class="l">${up == null ? "–" : up ? '<span class="up">up (above average)</span>' : '<span class="down">down (below average)</span>'}</td>
+      <td class="l">${up == null ? "–" : up ? "put spreads (below the price)" : "call spreads (above the price)"}</td><td class="l mute">${esc(listed)}</td></tr>`; }).join("");
+  $("#cards").innerHTML = SG.STRATS.map(s => `<div class="card"><div class="card-head"><span class="rank">${s.rank}</span><h3>${esc(s.name)}</h3>
+      <span class="mute">${s.kind === "trend" ? "credit spread, one side (by trend)" : "iron condor, both sides"} · expires ${esc(ist(SG.expiryOf(entry, s.expiryDays)))} · held ${s.holdH} h</span></div>
+      ${SG.COINS.map(c => { const p = positions.find(x => x.s.code === s.code && x.coin === c);
+        if (p.error) return `<div class="coin"><h4>${c}</h4><p class="warn">No signal: ${esc(p.error)}.</p></div>`;
+        if (!p.contracts) return `<div class="coin"><h4>${c}</h4><p class="warn">Capital too small: this position needs at least 1 contract (${SG.CONTRACT[c]} ${c} per leg).</p></div>`;
+        return `<div class="coin"><h4>${c} ${s.kind === "trend" ? `· ${p.up ? "put spread (trend up)" : "call spread (trend down)"}` : ""}</h4>${legsTable(p, ph)}
+          <div class="sum"><span>Premium ${usd(p.creditUsd)}</span><span>Fees ${usd(p.fees == null ? null : -p.fees)}</span><span>Worst case <b>${usd(-p.maxLoss, 0)}</b></span>
+          <span>Profit if ${c} settles ${p.breakeven ? [p.breakeven.low != null ? `above ${n(p.breakeven.low, 0)}` : "", p.breakeven.high != null ? `below ${n(p.breakeven.high, 0)}` : ""].filter(Boolean).join(" and ") : "between the sold strikes"}</span>
+          ${p.capped ? '<span class="warn">sized down by the 25% cap</span>' : ""}${result(p)}</div></div>`; }).join("")}</div>`).join("");
+  document.querySelectorAll("button.copy").forEach(b => b.onclick = () => { try { navigator.clipboard.writeText(b.dataset.c); b.textContent = "copied"; } catch (e) { /* no clipboard */ } });
+  $("#foot").innerHTML = `Rules from the Deploy strategies page (research E21, real option prices 2019–2026). Strikes: sold leg ${"k × DVOL × √(hold hours ÷ 8760)"} from the index, nearest listed strike; protective leg further out. Contract size ${SG.CONTRACT.BTC} BTC / ${SG.CONTRACT.ETH} ETH. Signals are computed in your browser from Delta's and Deribit's public prices; no account is connected and nothing is ordered for you.`;
+}
+
+async function tick() {
+  try { await load(); } catch (e) { $("#status").innerHTML = `<p class="big">Prices unavailable</p><p>${esc(e.message)}. Retrying in a minute.</p>`; }
+  setTimeout(tick, SG.phase(Date.now()) === "holding" ? 60e3 : 30e3);
+}
+try { const v = localStorage.getItem("signals.capital"); if (v) $("#capital").value = v; } catch (e) { /* storage blocked */ }
+$("#capital").addEventListener("change", () => load().catch(() => {}));
+tick();
+</script>
+</body>
+</html>

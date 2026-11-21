@@ -1,0 +1,255 @@
+{
+ "generated_utc": "2026-11-21 13:49",
+ "research_generated_utc": "2026-11-21 13:19",
+ "source": "edge/research/e21_top4.py and e21b/e22/e23: real Deribit option prices June 2019 to November 2026, Delta's fees, GST and fill ratios",
+ "units": "$ per $1,000 of capital per trade at 7.5x notional per sold leg (the research setting)",
+ "strategies": [
+  {
+   "code": "C3",
+   "id": "weekend-trend-spread",
+   "name": "Weekend trend spread",
+   "kind": "Credit spread (one side)",
+   "expiry": "Sunday 12:00 UTC (17:30 IST)",
+   "hold": "42 hours",
+   "rule": [
+    "At Friday 18:00 UTC, compare the coin's 00:00 UTC price with its 20-day average.",
+    "Above the average (up-trend): sell a put spread below the price. Below it: sell a call spread above the price.",
+    "Sold strike 0.8 × vol × √T away from the price, protective strike 1.6 × vol × √T (vol = 30-day implied vol, T = time to expiry).",
+    "Hold to Sunday's expiry. The loss is capped at the distance between the two strikes."
+   ],
+   "payer": "Weekend insurance buyers overpay, and only the side the trend is moving away from is sold.",
+   "rank": 1,
+   "entry": "Friday 18:00 UTC (23:30 IST)",
+   "score": 2.3,
+   "coins": {
+    "BTC": {
+     "trades": 233,
+     "win_pct": 97.4,
+     "t": 5.57,
+     "avg_usd": 11.38,
+     "worst_usd": -363.4,
+     "per_year_usd": 592.0,
+     "design_avg_usd": 19.86,
+     "validation_avg_usd": 8.03,
+     "design_sharpe": 2.85,
+     "validation_sharpe": 3.19,
+     "size_x": 1.49,
+     "weight": 0.124,
+     "status": "off",
+     "status_text": "Not running"
+    },
+    "ETH": {
+     "trades": 181,
+     "win_pct": 96.1,
+     "t": 5.54,
+     "avg_usd": 14.51,
+     "worst_usd": -214.6,
+     "per_year_usd": 754.0,
+     "design_avg_usd": 26.3,
+     "validation_avg_usd": 9.75,
+     "design_sharpe": 4.44,
+     "validation_sharpe": 2.3,
+     "size_x": 1.76,
+     "weight": 0.146,
+     "status": "off",
+     "status_text": "Not running (was on paper as \"Weekend trend spread\" until 11 Nov)"
+    }
+   }
+  },
+  {
+   "code": "C6",
+   "id": "friday-trend-spread",
+   "name": "Friday-night trend spread",
+   "kind": "Credit spread (one side)",
+   "expiry": "Saturday 12:00 UTC (17:30 IST)",
+   "hold": "18 hours",
+   "rule": [
+    "Same trend rule as #1 (price vs its 20-day average picks the put or the call side).",
+    "Sold strike 0.8 × vol × √T away from the price, protective strike 1.6 × vol × √T (vol = 30-day implied vol, T = time to expiry).",
+    "Hold to Saturday's expiry."
+   ],
+   "payer": "The same weekend insurance premium, over the quietest stretch of the week (Friday night).",
+   "rank": 2,
+   "entry": "Friday 18:00 UTC (23:30 IST)",
+   "score": 1.85,
+   "coins": {
+    "BTC": {
+     "trades": 250,
+     "win_pct": 94.4,
+     "t": 5.46,
+     "avg_usd": 8.66,
+     "worst_usd": -249.9,
+     "per_year_usd": 450.0,
+     "design_avg_usd": 9.93,
+     "validation_avg_usd": 7.99,
+     "design_sharpe": 1.85,
+     "validation_sharpe": 4.39,
+     "size_x": 1.93,
+     "weight": 0.161,
+     "status": "new",
+     "status_text": "New: needs building"
+    },
+    "ETH": {
+     "trades": 245,
+     "win_pct": 93.9,
+     "t": 5.74,
+     "avg_usd": 10.1,
+     "worst_usd": -175.0,
+     "per_year_usd": 525.0,
+     "design_avg_usd": 12.74,
+     "validation_avg_usd": 9.05,
+     "design_sharpe": 2.24,
+     "validation_sharpe": 3.29,
+     "size_x": 1.82,
+     "weight": 0.152,
+     "status": "new",
+     "status_text": "New: needs building"
+    }
+   }
+  },
+  {
+   "code": "C2",
+   "id": "friday-tight-condor",
+   "name": "Friday-night tight condor",
+   "kind": "Iron condor (both sides)",
+   "expiry": "Saturday 12:00 UTC (17:30 IST)",
+   "hold": "18 hours",
+   "rule": [
+    "Sell a call above and a put below the price, and buy a further-out call and put as protection.",
+    "Sold strike 0.57 × vol × √T away from the price, protective strike 1.14 × vol × √T (vol = 30-day implied vol, T = time to expiry).",
+    "Hold to Saturday's expiry. Only one side can lose, and by at most the strike gap."
+   ],
+   "payer": "Weekend insurance buyers; closer strikes collect more premium and lose more often.",
+   "rank": 3,
+   "entry": "Friday 18:00 UTC (23:30 IST)",
+   "score": 1.55,
+   "coins": {
+    "BTC": {
+     "trades": 202,
+     "win_pct": 78.2,
+     "t": 4.32,
+     "avg_usd": 12.0,
+     "worst_usd": -193.0,
+     "per_year_usd": 624.0,
+     "design_avg_usd": 11.34,
+     "validation_avg_usd": 12.42,
+     "design_sharpe": 1.55,
+     "validation_sharpe": 3.13,
+     "size_x": 1.42,
+     "weight": 0.118,
+     "status": "off",
+     "status_text": "Not running"
+    },
+    "ETH": {
+     "trades": 233,
+     "win_pct": 78.1,
+     "t": 4.25,
+     "avg_usd": 12.3,
+     "worst_usd": -156.1,
+     "per_year_usd": 639.0,
+     "design_avg_usd": 14.48,
+     "validation_avg_usd": 11.26,
+     "design_sharpe": 1.82,
+     "validation_sharpe": 2.23,
+     "size_x": 1.31,
+     "weight": 0.109,
+     "status": "paper",
+     "status_text": "On paper at 1× (\"ETH Friday-night condor (tight)\")"
+    }
+   }
+  },
+  {
+   "code": "C1",
+   "id": "friday-condor",
+   "name": "Friday-night condor",
+   "kind": "Iron condor (both sides)",
+   "expiry": "Saturday 12:00 UTC (17:30 IST)",
+   "hold": "18 hours",
+   "rule": [
+    "As #3, with the strikes further from the price.",
+    "Sold strike 0.8 × vol × √T away from the price, protective strike 1.6 × vol × √T (vol = 30-day implied vol, T = time to expiry).",
+    "Hold to Saturday's expiry."
+   ],
+   "payer": "Weekend insurance buyers (the edge first found on Delta's own prices in E2/E3).",
+   "rank": 4,
+   "entry": "Friday 18:00 UTC (23:30 IST)",
+   "score": 1.13,
+   "coins": {
+    "BTC": {
+     "trades": 225,
+     "win_pct": 87.1,
+     "t": 4.0,
+     "avg_usd": 11.07,
+     "worst_usd": -193.0,
+     "per_year_usd": 576.0,
+     "design_avg_usd": 9.66,
+     "validation_avg_usd": 11.69,
+     "design_sharpe": 1.13,
+     "validation_sharpe": 2.88,
+     "size_x": 1.22,
+     "weight": 0.101,
+     "status": "paper",
+     "status_text": "On paper at 5.66× (\"BTC Friday-night condor\")"
+    },
+    "ETH": {
+     "trades": 227,
+     "win_pct": 84.6,
+     "t": 4.92,
+     "avg_usd": 15.32,
+     "worst_usd": -250.6,
+     "per_year_usd": 796.0,
+     "design_avg_usd": 19.9,
+     "validation_avg_usd": 13.63,
+     "design_sharpe": 2.04,
+     "validation_sharpe": 2.82,
+     "size_x": 1.07,
+     "weight": 0.089,
+     "status": "off",
+     "status_text": "Not running (ETH version retired 11 Nov)"
+    }
+   }
+  }
+ ],
+ "portfolio": {
+  "out_of_sample": {
+   "per_year_pct": 45.8,
+   "max_dd_pct": 11.7,
+   "worst_week_pct": -11.7,
+   "sharpe": 2.92,
+   "losing_weeks_pct": 15.6,
+   "years_pct": {
+    "2023": 16.5,
+    "2024": 73.3,
+    "2025": 59.5,
+    "2026": 28.3
+   }
+  },
+  "deribit_prices_per_year_pct": 64.7,
+  "stress": {
+   "per_year_pct": 65.4,
+   "max_dd_pct": 42.2,
+   "worst_week_pct": -29.4,
+   "worst_week_date": "2021-07-23",
+   "compounded_1x_pct": 83.0
+  },
+  "worst_possible_weekend_pct": {
+   "median": 26,
+   "p90": 38,
+   "max_seen": 82
+  },
+  "expected_range": "about 40–70% a year, drawdowns 15–40%",
+  "leverage_limit": "2× of this sizing: ~200%/yr but 71% drawdown; 4×: account wiped out (one weekend, 23 Jul 2021)"
+ },
+ "risk_rules": [
+  "Same size every Friday (1×): sizing up on \"safer\" Fridays failed out of sample (E23).",
+  "Weekly cap: the whole book's worst possible loss on a weekend is at most 25% of capital; positions shrink in volatile weeks.",
+  "Never above 2× this sizing (E22).",
+  "Every position has bought protective legs, so each trade's loss is capped before it is opened."
+ ],
+ "steps": [
+  "Build #2 and the missing coin versions as paper books, with the weekly 25% cap.",
+  "Run all eight positions on paper for at least 12 Fridays; compare every fill with the model.",
+  "Kill rules: stop if the 12-Friday average is below half the backtest, or one weekend loses more than the cap.",
+  "Only then: real money at a quarter size, with approval for each trade, before scaling up."
+ ]
+}

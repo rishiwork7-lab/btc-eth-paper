@@ -94,7 +94,7 @@ const coinsOf = c => [c];
 const short = s => s.replace("R3 · ", "");
 
 function nav() {
-  const items = [["/options", "Overview", !COIN && !BOOK], ["/coin/BTC", "BTC", COIN === "BTC"], ["/coin/ETH", "ETH", COIN === "ETH"], ["/advisor", "1-min advisor", false], ["/breakout", "Breakout scalp", false]];
+  const items = [["/options", "Overview", !COIN && !BOOK], ["/coin/BTC", "BTC", COIN === "BTC"], ["/coin/ETH", "ETH", COIN === "ETH"], ["/advisor", "1-min advisor", false], ["/breakout", "Breakout scalp", false], ["/deploy", "Deploy strategies", false], ["/signals", "Signals", false]];
   return items.map(([h, t, on]) => `<a href="${h}" class="${on ? "on" : ""}">${t}</a>`).join("") +
     `<span style="flex:1"></span>` + D.books.map(b => `<a href="/strategy/${b.live.book}" class="${BOOK === b.live.book ? "on" : ""}">${esc(short(b.live.book_name))}</a>`).join("");
 }
