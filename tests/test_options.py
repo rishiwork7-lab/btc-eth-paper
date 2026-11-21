@@ -1,4 +1,6 @@
+import json
 import math
+import sqlite3
 import shutil
 import sys
 from pathlib import Path
@@ -60,6 +62,9 @@ def test_a_full_friday_paper_cycle(tmp_path, book):
     def fetch(url):
         if "deribit" in url:
             return {"result": {"data": [[int(FRI - 3600) * 1000, 70, 70, 70, 70.0]]}}
+        if "/v2/history/candles" in url and ".DEETHUSD" in url and "resolution=1m" in url:   # settlement: 30 one-minute closes
+            e = int(url.split("end=")[1].split("&")[0])
+            return {"result": [{"time": e - 60 * j, "close": 2001.0} for j in range(0, 31)]}
         if "/v2/history/candles" in url and ".DEETHUSD" in url:     # 20-day average 1900 < spot 2000: an uptrend
             d0 = int(FRI // 86400 * 86400)
             return {"result": [{"time": d0 - 86400 * j, "close": 1900.0} for j in range(0, 22)]}
@@ -67,7 +72,8 @@ def test_a_full_friday_paper_cycle(tmp_path, book):
             return chain(code, q)
         if "/v2/products/" in url:
             calls["n"] += 1
-            return {"result": {"taker_commission_rate": "0.0001", "product_specs": {"premium_commission_rate": 0.035}, "settlement_price": "2001.0" if calls["n"] > 1 else None}}
+            # the option's own payout, "0" when worthless: must never be read as ETH's price (bug of 2026-11-21)
+            return {"result": {"taker_commission_rate": "0.0001", "product_specs": {"premium_commission_rate": 0.035}, "settlement_price": "0"}}
         raise AssertionError(url)
     c = FridayCondor(eng, 10000.0, fetch=fetch, book=book)
     import time as _t
@@ -87,6 +93,32 @@ def test_a_full_friday_paper_cycle(tmp_path, book):
     if book == "be-eth-tight":   # tighter strikes: shorts nearer the price than the 0.8 book would pick
         k = {l["name"]: l["strike"] for l in p["legs"]}
         assert k["short_call"] - 2000 <= 40 and 2000 - k["short_put"] <= 40
-    c.step(FRI + (19 if book in ("fri-night", "be-eth-condor", "be-eth-tight") else 43) * 3600)   # after the expiry + 2 min: settle at Delta's price
+    c.step(FRI + (19 if book in ("fri-night", "be-eth-condor", "be-eth-tight") else 43) * 3600)   # after the expiry + 2 min: settle at Delta's index
     assert c.state["pos"] is None and c.state["cash"] > 10000 - 1e-6
+    drain(eng)
+    rec = json.loads(sqlite3.connect(str(eng.dbpath)).execute("SELECT data FROM opt_trades").fetchone()[0])
+    assert rec["settle_price"] == 2001.0 and rec["owed"] == 0 and rec["net"] > 0
+
+
+def test_a_trade_booked_at_zero_is_repaired(tmp_path):
+    """2026-11-21: Delta's option 'settlement_price' ("0") was read as ETH = 0 and both condors booked as full losses."""
+    shutil.copy(ROOT / "config.toml", tmp_path / "config.toml")
+    eng = Engine(tmp_path, PRODUCTS)
+    legs = [{"name": "short_call", "strike": 2040.0, "call": True, "side": "sell"}, {"name": "short_put", "strike": 1960.0, "call": False, "side": "sell"},
+            {"name": "wing_call", "strike": 2080.0, "call": True, "side": "buy"}, {"name": "wing_put", "strike": 1920.0, "call": False, "side": "buy"}]
+    bad = {"book": "be-eth-tight", "expiry_t": FRI + 18 * 3600, "expiry_time": "2026-11-14 12:00:00", "spot": 2000.0, "credit": 5.0, "qty": 2.0,
+           "fees": 1.0, "rate": 0.0003, "cap": 0.035, "legs": legs, "settle_price": 0.0, "owed": 40.0, "settle_fees": 0.0, "net": -71.0}
+    db = sqlite3.connect(str(eng.dbpath))
+    db.execute("INSERT INTO opt_trades (data) VALUES (?)", (json.dumps(bad),))
+    db.commit()
+    db.close()
+
+    def fetch(url):
+        assert "resolution=1m" in url and ".DEETHUSD" in url
+        e = int(url.split("end=")[1].split("&")[0])
+        return {"result": [{"time": e - 60 * j, "close": 2001.0} for j in range(0, 31)]}
+    c = FridayCondor(eng, 10000.0, fetch=fetch, book="be-eth-tight")
+    rec = json.loads(sqlite3.connect(str(eng.dbpath)).execute("SELECT data FROM opt_trades").fetchone()[0])
+    assert rec["settle_price"] == 2001.0 and rec["owed"] == 0 and rec["net"] == 5.0 * 2.0 - 1.0 and "repaired" in rec
+    assert abs(c.state["cash"] - (10000 + (5.0 * 2.0) - (5.0 - 40.0) * 2.0)) < 1e-9     # the wrong loss is given back
     drain(eng)

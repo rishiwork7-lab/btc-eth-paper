@@ -57,6 +57,10 @@ BOOKS["be-eth-tight"] = {"name": "ETH Friday-night condor (tight)", "kind": "con
                          "test": "Their strikes + wings: Delta real ~41%/yr at 5x (t 2.42); 5-year replay t 0.65"}
 RUNNING = ("be-btc-condor", "be-eth-tight")
 QTY_STEP = {"ETH": 0.01, "BTC": 0.001}
+# Delta's settlement index for options: the 30-minute average of these before expiry. (A product's own "settlement_price"
+# is the OPTION's payout, "0" when it expires worthless; it must never be read as the underlying's price. Bug found
+# 2026-11-21: both Friday condors were booked at BTC/ETH = 0, i.e. as full losses.)
+INDEX = {"BTC": ".DEXBTUSD", "ETH": ".DEETHUSD"}
 
 
 def get(url):
@@ -134,6 +138,38 @@ class FridayCondor:
             self.state.update(json.loads(r[0]))
         self.index_samples: list = []
         self.lock = threading.Lock()
+        try:
+            self.repair_bad_settlements()
+        except Exception as e:  # network down: retried at the next start
+            self._event(time.time(), "ERROR", f"settlement repair skipped: {type(e).__name__}: {e}")
+
+    def repair_bad_settlements(self):
+        """Re-settle trades that were booked at an impossible underlying price (the 2026-11-21 '0' bug), and correct cash."""
+        import sqlite3
+        db = sqlite3.connect(str(self.eng.dbpath), timeout=30)
+        try:
+            rows = db.execute("SELECT id, data FROM opt_trades").fetchall()
+            for rid, data in rows:
+                rec = json.loads(data)
+                if rec.get("book") != self.book or not rec.get("spot") or rec.get("settle_price", 0) >= 0.5 * rec["spot"]:
+                    continue
+                price = self.index_settlement(rec["expiry_t"])
+                if not price:
+                    continue
+                old_cash = (rec["credit"] - rec["owed"]) * rec["qty"] - rec["settle_fees"]
+                owed, settle_fees, net, cash = self.settle_amounts(rec, price)
+                self.state["cash"] += cash - old_cash
+                was = rec["net"]
+                rec |= {"settle_price": round(price, 2), "settle_source": "Delta index, 30-minute average before expiry (re-settled)",
+                        "owed": round(owed, 4), "settle_fees": round(settle_fees, 4), "net": round(net, 2),
+                        "net_pct": round(net / self.state["capital"] * 100, 3), "repaired": f"was booked at {self.asset} = 0, net {was:+.2f}"}
+                db.execute("UPDATE opt_trades SET data=? WHERE id=?", (json.dumps(rec, default=str), rid))
+                db.commit()
+                self._event(time.time(), "REPAIR", f"the {rec['expiry_time'][:10]} expiry was wrongly settled at {self.asset} = 0 (net {was:+,.2f}); "
+                            f"re-settled at {price:,.2f} from Delta's index: net {net:+,.2f}", {"net": net})
+                self._save()
+        finally:
+            db.close()
 
     # ---- records (through the engine's single writer thread) ---------------------------------------------------------
     def _save(self):
@@ -292,28 +328,44 @@ class FridayCondor:
         p["marked_t"] = now
         self._save()
 
+    def index_settlement(self, expiry_t: float) -> float | None:
+        """Delta's settlement rule: mean of the index's 1-minute closes over the 30 minutes before expiry."""
+        e = int(expiry_t)
+        rows = self.fetch(f"{API}/v2/history/candles?resolution=1m&symbol={INDEX[self.asset]}&start={e - 1800}&end={e}")["result"] or []
+        xs = [float(r["close"]) for r in rows if e - 1800 <= int(r["time"]) < e and float(r["close"]) > 0]
+        return sum(xs) / len(xs) if len(xs) >= 25 else None
+
+    def settle_amounts(self, p: dict, price: float) -> tuple[float, float, float, float]:
+        """owed per unit, settlement fees, net P&L, and the cash that settlement adds."""
+        owed = settle_value(p["legs"], price)
+        settle_fees = sum(option_fee(max(0.0, (price - l["strike"]) if l["call"] else (l["strike"] - price)), p["qty"], price, p["rate"], p["cap"], self.gst)
+                          for l in p["legs"])
+        cash = (p["credit"] - owed) * p["qty"] - settle_fees
+        return owed, settle_fees, cash - p["fees"], cash
+
     def settle(self, now: float):
         p = self.state["pos"]
         price, source = None, ""
         try:
-            sp = self.fetch(f"{API}/v2/products/{p['legs'][0]['symbol']}")["result"].get("settlement_price")
-            if sp:
-                price, source = float(sp), "Delta settlement price"
+            price = self.index_settlement(p["expiry_t"])
+            source = "Delta index, 30-minute average before expiry"
         except Exception:
-            pass
+            price = None
         if price is None:
-            xs = [s for t, s in self.index_samples if p["expiry_t"] - 1800 <= t <= p["expiry_t"]]
-            if not xs:
-                if now < p["expiry_t"] + 3600:
-                    return                  # wait for Delta's settlement price
+            xs = [s for t, s in self.index_samples if p["expiry_t"] - 1800 <= t <= p["expiry_t"] and s and s > 0]
+            if len(xs) >= 10:
+                price, source = sum(xs) / len(xs), "30-minute average of index samples taken live"
+            elif now < p["expiry_t"] + 6 * 3600:
+                return                      # wait for Delta's index candles
+            else:
                 s, _ = self.spot()
-                xs = [s]
-            price, source = sum(xs) / len(xs), "30-minute index average (Delta's price not yet published)"
-        owed = settle_value(p["legs"], price)
-        settle_fees = sum(option_fee(max(0.0, (price - l["strike"]) if l["call"] else (l["strike"] - price)), p["qty"], price, p["rate"], p["cap"], self.gst)
-                          for l in p["legs"])
-        net = (p["credit"] - owed) * p["qty"] - p["fees"] - settle_fees
-        self.state["cash"] += (p["credit"] - owed) * p["qty"] - settle_fees
+                if not s or s <= 0:
+                    return
+                price, source = s, "spot index 6 h after expiry (index candles unavailable)"
+        if not price or price < 0.5 * p["spot"] or price > 2 * p["spot"]:
+            return self._event(now, "ERROR", f"settlement price {price} rejected (entry spot {p['spot']}); will retry")
+        owed, settle_fees, net, cash = self.settle_amounts(p, price)
+        self.state["cash"] += cash
         rec = {k: v for k, v in p.items() if k not in ("legs",)} | {"book": self.book, "legs": p["legs"], "settle_price": round(price, 2), "settle_source": source,
                                                                     "owed": round(owed, 4), "settle_fees": round(settle_fees, 4), "net": round(net, 2),
                                                                     "net_pct": round(net / self.state["capital"] * 100, 3), "closed": utc(now)}
