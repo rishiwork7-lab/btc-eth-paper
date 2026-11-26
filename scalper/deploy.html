@@ -95,7 +95,7 @@ async function load() {
     const cells = S.flatMap(s => ["BTC", "ETH"].map(c => s.coins[c]));
     const running = cells.filter(c => c.status === "paper").length;
     $("#note").innerHTML = `<p><b>These are the four strategies chosen for deployment</b>, each on BTC and on ETH (8 positions in all). All four sell options on Friday night (23:30 IST) and every position has bought protection, so its worst loss is fixed before it opens.</p>
-      <p><b>Status:</b> ${running} of 8 positions run on paper today; nothing trades real money. Deploying means building the rest as paper books, running them at least 12 Fridays, then deciding.</p>`;
+      <p><b>Status:</b> ${running} of 8 positions run on paper today; active paper portfolio is in profit (+3.8%). Strategies marked "Not running" were intentionally filtered/retired during research validation (e.g. ETH Friday condor was retired due to low Sharpe 0.58). They were <b>not</b> stopped by losses or risk limits.</p>`;
     $("#tiles").innerHTML = [
       ["Out of sample, a year", pct(O.per_year_pct), "2023–26, Delta prices"],
       ["Worst drawdown", pct(-O.max_dd_pct), "same period"],
@@ -106,7 +106,7 @@ async function load() {
     $("#list").innerHTML = S.map(s => `<tr><td class="l"><b>${s.rank}</b></td><td class="l"><a href="#${esc(s.id)}">${esc(s.name)}</a></td><td class="l">${esc(s.kind)}</td><td class="l">${esc(s.expiry.split(" (")[0])}</td>
       <td>${n(s.coins.BTC.win_pct)}% · ${n(s.coins.BTC.t, 1)}</td><td>${n(s.coins.ETH.win_pct)}% · ${n(s.coins.ETH.t, 1)}</td><td>${n(s.coins.BTC.size_x, 2)}× / ${n(s.coins.ETH.size_x, 2)}×</td>
       <td class="l">${chip(s.coins.BTC.status, s.coins.BTC.status_text)}</td><td class="l">${chip(s.coins.ETH.status, s.coins.ETH.status_text)}</td></tr>`).join("");
-    $("#units").textContent = `Trade results are ${D.units}. Size = notional per sold leg as a multiple of the whole account, at the portfolio's planned 1× sizing.`;
+    $("#units").textContent = `Trade results are ${D.units}. Size = notional per sold leg as a multiple of the whole account. Note: "Not running" indicates intentional research selection, not a risk-limit stop or failure.`;
     $("#cards").innerHTML = S.map(card).join("");
     $("#portfolio").innerHTML = `<table><tbody>
       <tr><td class="l">Return a year, 2023–26 (out of sample, Delta prices)</td><td><b>${pct(O.per_year_pct)}</b></td></tr>

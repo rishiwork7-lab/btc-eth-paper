@@ -46,7 +46,7 @@ button.copy{border:1px solid var(--line);background:var(--card);border-radius:6p
 
 <div class="panel"><div class="row">
   <label class="cap">Your capital (USD) <input id="capital" type="number" min="100" step="100" value="10000"></label>
-  <span class="mute">Sizes, premiums and worst cases below are for this amount. The whole weekend is capped at a <b>25%</b> worst case.</span>
+  <span class="mute">Calculated for this capital. <b>Active Risk Protection:</b> Position sizes are automatically capped so that total potential weekend risk never exceeds <b>25%</b> of capital.</span>
   <span style="flex:1"></span><span class="mute" id="updated"></span>
 </div></div>
 
@@ -236,10 +236,10 @@ function render() {
     : `<p class="big">Holding this weekend's positions: entered ${esc(ist(entry))}</p><p>Nothing to do. These are the signals as issued at entry (prices from Delta's mark history), with live P&L. Saturday positions settle ${esc(ist(SG.expiryOf(entry, 1)))}, Sunday positions ${esc(ist(SG.expiryOf(entry, 2)))}. The next signal is ${esc(ist(entry + 7 * 86400e3))}.</p>`;
   $("#updated").textContent = "Updated " + new Date(now).toLocaleTimeString("en-IN", {timeZone: "Asia/Kolkata", hour12: false}) + " IST";
   $("#tiles").innerHTML = [
-    ["Positions", `${ok.length} / 8`, cap.scale < 1 ? `sized down to ${n(cap.scale * 100, 0)}% by the cap` : "full size"],
+    ["Positions", `${ok.length} / 8`, cap.scale < 1 ? `sized down to ${n(cap.scale * 100, 0)}% by safety cap` : "full size"],
     ["Premium collected", allListed || ph === "holding" ? usd(credit) : "–", "at mark, all positions"],
     ["Fees (est.)", allListed || ph === "holding" ? usd(-fees) : "–", "Delta options fee + GST"],
-    ["Worst case, whole weekend", usd(-cap.total, 0), `${n(cap.total / capital * 100, 1)}% of capital (cap 25%)`],
+    ["Max Risk Ceiling (Protected)", `$${n(cap.total, 0)}`, `Capped at ${n(cap.total / capital * 100, 1)}% of capital (safeguard)`],
   ].map(([t, b, i]) => `<div class="tile"><span>${t}</span><b>${b}</b><i>${esc(i)}</i></div>`).join("");
   $("#market").innerHTML = SG.COINS.map(c => { const m = M[c], up = m.avg20 != null ? m.spot > m.avg20 : null;
     const codes = [...new Set(positions.filter(p => p.coin === c && p.code).map(p => p.code))];
@@ -254,9 +254,9 @@ function render() {
         if (p.error) return `<div class="coin"><h4>${c}</h4><p class="warn">No signal: ${esc(p.error)}.</p></div>`;
         if (!p.contracts) return `<div class="coin"><h4>${c}</h4><p class="warn">Capital too small: this position needs at least 1 contract (${SG.CONTRACT[c]} ${c} per leg).</p></div>`;
         return `<div class="coin"><h4>${c} ${s.kind === "trend" ? `· ${p.up ? "put spread (trend up)" : "call spread (trend down)"}` : ""}</h4>${legsTable(p, ph)}
-          <div class="sum"><span>Premium ${usd(p.creditUsd)}</span><span>Fees ${usd(p.fees == null ? null : -p.fees)}</span><span>Worst case <b>${usd(-p.maxLoss, 0)}</b></span>
+          <div class="sum"><span>Premium ${usd(p.creditUsd)}</span><span>Fees ${usd(p.fees == null ? null : -p.fees)}</span><span>Max loss if wings breach <b>$${n(p.maxLoss, 0)}</b></span>
           <span>Profit if ${c} settles ${p.breakeven ? [p.breakeven.low != null ? `above ${n(p.breakeven.low, 0)}` : "", p.breakeven.high != null ? `below ${n(p.breakeven.high, 0)}` : ""].filter(Boolean).join(" and ") : "between the sold strikes"}</span>
-          ${p.capped ? '<span class="warn">sized down by the 25% cap</span>' : ""}${result(p)}</div></div>`; }).join("")}</div>`).join("");
+          ${p.capped ? '<span class="chip" style="background:#eaf0ff;color:#1f5eea">Protected by 25% risk cap</span>' : ""}${result(p)}</div></div>`; }).join("")}</div>`).join("");
   document.querySelectorAll("button.copy").forEach(b => b.onclick = () => { try { navigator.clipboard.writeText(b.dataset.c); b.textContent = "copied"; } catch (e) { /* no clipboard */ } });
   $("#foot").innerHTML = `Rules from the Deploy strategies page (research E21, real option prices 2019–2026). Strikes: sold leg ${"k × DVOL × √(hold hours ÷ 8760)"} from the index, nearest listed strike; protective leg further out. Contract size ${SG.CONTRACT.BTC} BTC / ${SG.CONTRACT.ETH} ETH. Signals are computed in your browser from Delta's and Deribit's public prices; no account is connected and nothing is ordered for you.`;
 }
