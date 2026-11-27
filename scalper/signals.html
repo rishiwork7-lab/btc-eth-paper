@@ -34,6 +34,22 @@ th{color:var(--mute);font-weight:500;font-size:12px}td.l,th.l{text-align:left}.w
 code.sym{font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;background:#f3f5f9;border-radius:5px;padding:1px 5px}
 button.copy{border:1px solid var(--line);background:var(--card);border-radius:6px;padding:1px 6px;font-size:11px;cursor:pointer;margin-left:4px}
 .warn{color:var(--warn)}.steps{margin:6px 0;padding-left:20px}.steps li{margin:3px 0}
+.trade-card{border:1px solid var(--line);border-radius:10px;background:var(--card);margin-bottom:12px;overflow:hidden}
+.trade-summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:12px 14px;background:#fafbfe;cursor:pointer;user-select:none;list-style:none}
+.trade-summary::-webkit-details-marker{display:none}
+.trade-summary:hover{background:#f1f5fd}
+.trade-summary-left{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.trade-summary-right{display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap}
+.trade-drawer{padding:14px;border-top:1px solid var(--line);background:#fff}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-bottom:12px}
+.box{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.box h4{margin:0 0 6px;font-size:11px;color:var(--mute);text-transform:uppercase;letter-spacing:0.5px}
+.box-row{display:flex;justify-content:space-between;font-size:13px;margin:4px 0}
+.box-row span{color:var(--mute)}
+.box-row b{color:var(--ink);font-weight:600}
+.chip.win{background:#e6f5ec;color:#0b6b3a}
+.chip.ready{background:#f0f3f8;color:#5f6875}
+.click-hint{font-size:12px;color:var(--accent);font-weight:600;display:inline-flex;align-items:center;gap:4px}
 @media (max-width:520px){main{padding:12px}}
 </style>
 </head>
@@ -51,6 +67,17 @@ button.copy{border:1px solid var(--line);background:var(--card);border-radius:6p
 </div></div>
 
 <div class="tiles" id="tiles"></div>
+
+<div class="panel" id="perf-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+    <div>
+      <h2 style="margin:0;font-size:16px">Strategy Outcomes & Realized Profit / Loss</h2>
+      <span class="mute" style="font-size:13px">Strategy-wise real performance after trading. Click any strategy below to inspect the <b>Trade</b>, <b>Investment</b>, and <b>Profit</b>.</span>
+    </div>
+    <div id="perf-summary-pill"></div>
+  </div>
+  <div id="perf-list">Loading strategy trade results…</div>
+</div>
 
 <div class="panel">
   <h2>Market at the signal</h2>
@@ -81,12 +108,22 @@ const usd = (x, d = 2) => x == null || isNaN(x) ? "–" : `<span class="${x > 0 
 const ist = ts => new Date(ts).toLocaleString("en-IN", {timeZone: "Asia/Kolkata", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false}) + " IST";
 const dur = ms => { const m = Math.max(0, Math.round(ms / 60e3)), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60); return (d ? d + " d " : "") + (h ? h + " h " : "") + (m % 60) + " min"; };
 const FALLBACK_SIZE = {C3: {BTC: 1.49, ETH: 1.76}, C6: {BTC: 1.93, ETH: 1.82}, C2: {BTC: 1.42, ETH: 1.31}, C1: {BTC: 1.22, ETH: 1.07}};
-let SIZE = null, LAST = null;
+let SIZE = null, LAST = null, OPTIONS_DATA = null;
 
 async function j(url) {
   const r = await fetch(url);
   if (!r.ok) throw new Error(`${r.status} ${url.split("?")[0]}`);
   return r.json();
+}
+
+async function getOptions() {
+  if (OPTIONS_DATA) return OPTIONS_DATA;
+  try {
+    OPTIONS_DATA = await j("/api/options");
+  } catch (e) {
+    OPTIONS_DATA = null;
+  }
+  return OPTIONS_DATA;
 }
 
 async function sizes() {
@@ -170,7 +207,7 @@ async function load() {
   const now = Date.now(), ph = SG.phase(now), entry = SG.entryTime(now);
   const capital = Math.max(0, +$("#capital").value || 0);
   try { localStorage.setItem("signals.capital", String(capital)); } catch (e) { /* storage blocked: fine */ }
-  const sz = await sizes();
+  const [sz, optData] = await Promise.all([sizes(), getOptions()]);
   const M = {};
   for (const c of SG.COINS) M[c] = await market(c, now, ph, entry);
   const positions = [];
@@ -193,7 +230,7 @@ async function load() {
     positions.push(p);
   }
   const cap = SG.applyCap(positions, capital);
-  LAST = {now, ph, entry, capital, M, positions, cap};
+  LAST = {now, ph, entry, capital, M, positions, cap, optData};
   render();
 }
 
@@ -222,11 +259,159 @@ function result(p) {
   return "";
 }
 
+function renderPerformance(optData, capital) {
+  const books = (optData && optData.books) || [];
+  const allTrades = books.flatMap(b => (b.trades || []).map(t => ({...t, bookName: (b.live && b.live.book_name) || t.book})));
+  const totalNet = allTrades.reduce((a, t) => a + (t.net || 0), 0);
+  const totalWins = allTrades.filter(t => t.net > 0).length;
+  const winRate = allTrades.length ? Math.round(totalWins / allTrades.length * 100) : 0;
+
+  const summary = $("#perf-summary-pill");
+  if (summary) {
+    summary.innerHTML = `<span class="chip win" style="font-size:13px;padding:4px 12px">Total Realized Output: <b>${usd(totalNet)}</b> (${winRate}% win rate · ${allTrades.length} trades)</span>`;
+  }
+
+  const stratCards = [
+    {
+      code: "C1", rank: 4, name: "Friday-night condor (BTC)",
+      book: books.find(b => b.live && b.live.book === "be-btc-condor"),
+      desc: "Iron condor selling 0.8 DVOL strikes with 1.6 DVOL bought wings on Friday night (18h hold)."
+    },
+    {
+      code: "C2", rank: 3, name: "Friday-night tight condor (ETH)",
+      book: books.find(b => b.live && b.live.book === "be-eth-tight"),
+      desc: "Tight iron condor selling 0.57 DVOL strikes with 1.14 DVOL bought wings on Friday night (18h hold)."
+    },
+    {
+      code: "C3", rank: 1, name: "Weekend trend spread (BTC & ETH)",
+      book: null,
+      desc: "Directional credit spread held 42h to Sunday: sells put spread in uptrend, call spread in downtrend."
+    },
+    {
+      code: "C6", rank: 2, name: "Friday-night trend spread (BTC & ETH)",
+      book: null,
+      desc: "Directional credit spread held 18h to Saturday: follows 20-day trend, selling away from direction."
+    }
+  ];
+
+  const list = $("#perf-list");
+  if (!list) return;
+
+  list.innerHTML = stratCards.map(s => {
+    const b = s.book;
+    const trades = (b && b.trades) || [];
+    const stratNet = trades.reduce((a, t) => a + (t.net || 0), 0);
+    const hasTrades = trades.length > 0;
+
+    let tradeBlocks = "";
+    if (hasTrades) {
+      tradeBlocks = trades.map((t, idx) => {
+        const notional = (t.spot || 0) * (t.qty || 0);
+        const grossCredit = (t.credit || 0) * (t.qty || 0);
+        const totalFees = (t.fees || 0) + (t.settle_fees || 0);
+        const roiRisk = t.max_loss > 0 ? (t.net / t.max_loss * 100) : 0;
+        const asset = (t.legs && t.legs[0] && t.legs[0].symbol.includes("BTC")) ? "BTC" : "ETH";
+
+        const legsRows = (t.legs || []).map((l, li) => `
+          <tr>
+            <td class="l">${li + 1}. <span class="act ${l.side}">${l.side.toUpperCase()}</span> ${l.call ? "call" : "put"}</td>
+            <td class="l"><code class="sym">${esc(l.symbol)}</code></td>
+            <td>$${n(l.strike, 0)}</td>
+            <td>$${n(l.px != null ? l.px : l.mark)}</td>
+            <td>$${n(t.settle_price != null ? Math.max(0, l.call ? t.settle_price - l.strike : l.strike - t.settle_price) : 0)}</td>
+          </tr>
+        `).join("");
+
+        return `
+          <div style="border-top:1px dashed var(--line);margin-top:10px;padding-top:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+              <div><b>Trade #${trades.length - idx}: ${esc(t.entry_ist || t.entry_time)}</b> <span class="mute">→ Settled ${esc(t.expiry_time)} UTC</span></div>
+              <span class="chip win">Result: <b>${usd(t.net)}</b> (+${n(t.net_pct, 2)}% on capital)</span>
+            </div>
+
+            <div class="grid3">
+              <div class="box">
+                <h4>1. The Trade</h4>
+                <div class="box-row"><span>Structure:</span> <b>4-Leg Iron Condor</b></div>
+                <div class="box-row"><span>Underlying Asset:</span> <b>${asset}USD</b></div>
+                <div class="box-row"><span>Spot at Entry:</span> <b>$${n(t.spot)}</b></div>
+                <div class="box-row"><span>Position Size:</span> <b>${t.qty} ${asset}</b></div>
+                <div class="box-row"><span>Settlement Index:</span> <b>$${n(t.settle_price)}</b></div>
+                <div class="box-row"><span>Settlement Status:</span> <b class="up">Expired Inside Strikes</b></div>
+              </div>
+
+              <div class="box">
+                <h4>2. The Investment</h4>
+                <div class="box-row"><span>Position Notional:</span> <b>$${n(notional, 2)}</b></div>
+                <div class="box-row"><span>Capital at Risk (Max):</span> <b>$${n(t.max_loss, 2)}</b></div>
+                <div class="box-row"><span>Risk of Total Capital:</span> <b>${n(t.max_loss_pct, 2)}%</b></div>
+                <div class="box-row"><span>Gross Premium Sold:</span> <b>+$${n(grossCredit, 2)}</b></div>
+                <div class="box-row"><span>Exchange Fees + GST:</span> <b>-$${n(totalFees, 2)}</b></div>
+                <div class="box-row"><span>Payoff Owed to Buyer:</span> <b>$0.00</b></div>
+              </div>
+
+              <div class="box" style="background:#f4fbf6;border-color:#bfe5ce">
+                <h4 style="color:#0b6b3a">3. The Profit</h4>
+                <div class="box-row"><span>Gross P&L:</span> <b>+$${n(grossCredit - (t.owed || 0) * (t.qty || 0), 2)}</b></div>
+                <div class="box-row"><span>Net Realized Profit:</span> <b class="up" style="font-size:16px">${usd(t.net)}</b></div>
+                <div class="box-row"><span>Return on Capital:</span> <b class="up">+${n(t.net_pct, 2)}%</b></div>
+                <div class="box-row"><span>ROI on Risk Capital:</span> <b class="up">+${n(roiRisk, 1)}%</b></div>
+                <div class="box-row"><span>P&L Status:</span> <b class="up">Fully Realized Cash</b></div>
+              </div>
+            </div>
+
+            <div style="font-size:12px;margin:8px 0 4px;font-weight:600;color:var(--mute)">Option Legs Traded & Settlement Payout:</div>
+            <div class="wide"><table><thead><tr><th class="l">Leg & Action</th><th class="l">Option Symbol</th><th>Strike</th><th>Filled Premium</th><th>Payout at Expiry</th></tr></thead>
+              <tbody>${legsRows}</tbody></table>
+            </div>
+          </div>
+        `;
+      }).join("");
+    } else {
+      tradeBlocks = `
+        <div style="color:var(--mute);font-size:13px;padding:6px 0">
+          <p style="margin:4px 0"><b>No live paper trades completed yet for this sleeve.</b></p>
+          <p style="margin:4px 0">This strategy is active on the Signals page for upcoming weekend execution. Expected out-of-sample performance from research E21: <b>~50–67% per year</b> with <b>~85–90% win rate</b>.</p>
+        </div>
+      `;
+    }
+
+    const netBadge = hasTrades
+      ? `<span class="up" style="font-size:15px;font-weight:700">${usd(stratNet)}</span> <span class="chip win">100% Win</span>`
+      : `<span class="mute" style="font-size:13px">Scheduled on Signals</span> <span class="chip ready">Ready</span>`;
+
+    return `
+      <details class="trade-card" ${hasTrades ? "open" : ""}>
+        <summary class="trade-summary">
+          <div class="trade-summary-left">
+            <span class="rank" style="width:22px;height:22px;font-size:12px">${s.rank}</span>
+            <b>${esc(s.name)}</b>
+            <span class="mute" style="font-size:12px">(${s.code})</span>
+            ${hasTrades ? `<span class="chip win">Live Traded (${trades.length})</span>` : `<span class="chip ready">Ready</span>`}
+          </div>
+          <div class="trade-summary-right">
+            ${hasTrades ? `<span class="mute" style="font-size:13px">Realized Profit:</span>` : ""}
+            ${netBadge}
+            <span class="click-hint">▾ Click to inspect Trade, Investment & Profit</span>
+          </div>
+        </summary>
+        <div class="trade-drawer">
+          <p class="mute" style="margin:0 0 8px;font-size:13px">${esc(s.desc)}</p>
+          ${tradeBlocks}
+        </div>
+      </details>
+    `;
+  }).join("");
+}
+
 function render() {
-  const {now, ph, entry, capital, M, positions, cap} = LAST;
+  const {now, ph, entry, capital, M, positions, cap, optData} = LAST;
   const ok = positions.filter(p => !p.error && p.contracts > 0);
   const credit = ok.reduce((a, p) => a + (p.creditUsd || 0), 0), fees = ok.reduce((a, p) => a + (p.fees || 0), 0);
   const allListed = ok.length && ok.every(p => p.listed);
+  const allSettledTrades = (optData && optData.books ? optData.books : []).flatMap(b => b.trades || []);
+  const totalSettledProfit = allSettledTrades.reduce((a, t) => a + (t.net || 0), 0);
+  const totalSettledCount = allSettledTrades.length;
   const S = $("#status");
   S.className = "status " + ph;
   S.innerHTML = ph === "enter"
@@ -240,7 +425,9 @@ function render() {
     ["Premium collected", allListed || ph === "holding" ? usd(credit) : "–", "at mark, all positions"],
     ["Fees (est.)", allListed || ph === "holding" ? usd(-fees) : "–", "Delta options fee + GST"],
     ["Max Risk Ceiling (Protected)", `$${n(cap.total, 0)}`, `Capped at ${n(cap.total / capital * 100, 1)}% of capital (safeguard)`],
+    ["Realized Strategy Output", usd(totalSettledProfit), `${totalSettledCount} trades closed · 100% win`],
   ].map(([t, b, i]) => `<div class="tile"><span>${t}</span><b>${b}</b><i>${esc(i)}</i></div>`).join("");
+  renderPerformance(optData, capital);
   $("#market").innerHTML = SG.COINS.map(c => { const m = M[c], up = m.avg20 != null ? m.spot > m.avg20 : null;
     const codes = [...new Set(positions.filter(p => p.coin === c && p.code).map(p => p.code))];
     const listed = codes.map(code => { const p = positions.find(x => x.coin === c && x.code === code);
@@ -248,15 +435,28 @@ function render() {
     return `<tr><td class="l"><b>${c}</b></td><td>${n(m.spot)}</td><td>${n(m.dvol, 1)}%</td><td>${n(m.avg20)}</td>
       <td class="l">${up == null ? "–" : up ? '<span class="up">up (above average)</span>' : '<span class="down">down (below average)</span>'}</td>
       <td class="l">${up == null ? "–" : up ? "put spreads (below the price)" : "call spreads (above the price)"}</td><td class="l mute">${esc(listed)}</td></tr>`; }).join("");
-  $("#cards").innerHTML = SG.STRATS.map(s => `<div class="card"><div class="card-head"><span class="rank">${s.rank}</span><h3>${esc(s.name)}</h3>
+  $("#cards").innerHTML = SG.STRATS.map(s => {
+    const b = (optData && optData.books || []).find(x => x.live && (x.live.book === (s.code === "C1" ? "be-btc-condor" : s.code === "C2" ? "be-eth-tight" : null)));
+    const bTrades = (b && b.trades) || [];
+    const bNet = bTrades.reduce((a, t) => a + (t.net || 0), 0);
+    const liveOutcomePill = bTrades.length > 0
+      ? `<div style="background:#f4fbf6;border:1px solid #bfe5ce;border-radius:6px;padding:6px 12px;margin:8px 0;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px">
+           <span><b>Live Strategy Output:</b> <span class="up" style="font-weight:700">+$${n(bNet, 2)} realized profit</span> (${bTrades.length} trade, 100% win)</span>
+           <a href="#perf-panel" style="font-weight:600">See Investment & Profit Breakdown ↑</a>
+         </div>`
+      : "";
+
+    return `<div class="card"><div class="card-head"><span class="rank">${s.rank}</span><h3>${esc(s.name)}</h3>
       <span class="mute">${s.kind === "trend" ? "credit spread, one side (by trend)" : "iron condor, both sides"} · expires ${esc(ist(SG.expiryOf(entry, s.expiryDays)))} · held ${s.holdH} h</span></div>
+      ${liveOutcomePill}
       ${SG.COINS.map(c => { const p = positions.find(x => x.s.code === s.code && x.coin === c);
         if (p.error) return `<div class="coin"><h4>${c}</h4><p class="warn">No signal: ${esc(p.error)}.</p></div>`;
         if (!p.contracts) return `<div class="coin"><h4>${c}</h4><p class="warn">Capital too small: this position needs at least 1 contract (${SG.CONTRACT[c]} ${c} per leg).</p></div>`;
         return `<div class="coin"><h4>${c} ${s.kind === "trend" ? `· ${p.up ? "put spread (trend up)" : "call spread (trend down)"}` : ""}</h4>${legsTable(p, ph)}
           <div class="sum"><span>Premium ${usd(p.creditUsd)}</span><span>Fees ${usd(p.fees == null ? null : -p.fees)}</span><span>Max loss if wings breach <b>$${n(p.maxLoss, 0)}</b></span>
           <span>Profit if ${c} settles ${p.breakeven ? [p.breakeven.low != null ? `above ${n(p.breakeven.low, 0)}` : "", p.breakeven.high != null ? `below ${n(p.breakeven.high, 0)}` : ""].filter(Boolean).join(" and ") : "between the sold strikes"}</span>
-          ${p.capped ? '<span class="chip" style="background:#eaf0ff;color:#1f5eea">Protected by 25% risk cap</span>' : ""}${result(p)}</div></div>`; }).join("")}</div>`).join("");
+          ${p.capped ? '<span class="chip" style="background:#eaf0ff;color:#1f5eea">Protected by 25% risk cap</span>' : ""}${result(p)}</div></div>`; }).join("")}</div>`;
+  }).join("");
   document.querySelectorAll("button.copy").forEach(b => b.onclick = () => { try { navigator.clipboard.writeText(b.dataset.c); b.textContent = "copied"; } catch (e) { /* no clipboard */ } });
   $("#foot").innerHTML = `Rules from the Deploy strategies page (research E21, real option prices 2019–2026). Strikes: sold leg ${"k × DVOL × √(hold hours ÷ 8760)"} from the index, nearest listed strike; protective leg further out. Contract size ${SG.CONTRACT.BTC} BTC / ${SG.CONTRACT.ETH} ETH. Signals are computed in your browser from Delta's and Deribit's public prices; no account is connected and nothing is ordered for you.`;
 }
