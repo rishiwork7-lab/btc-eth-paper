@@ -17,3 +17,12 @@ def test_friday_runs_stay_up_through_the_condor_entry():
     assert in_entry_window(ts(2026, 11, 20, 18, 5))          # ...through the 18:00-18:10 UTC entry
     assert not in_entry_window(ts(2026, 11, 20, 18, 12))
     assert not in_entry_window(ts(2026, 11, 19, 17, 30))     # Thursday: no condor entry
+
+
+def test_simple_subpath_has_all_assets_and_data():
+    cloud = (ROOT / "cloud.py").read_text()
+    assert '("simple.html", "simple.html")' in cloud
+    assert '("simple.html", "simple/index.html")' in cloud
+    assert 'SITE / "simple" / "static.js"' in cloud
+    assert 'SITE / "simple" / "signals_core.js"' in cloud
+    assert 'SITE / "simple" / "data"' in cloud

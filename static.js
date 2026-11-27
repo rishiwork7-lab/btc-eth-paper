@@ -5,8 +5,10 @@
 (() => {
   const DELTA = "https://api.india.delta.exchange";
   const realFetch = window.fetch.bind(window);
+  const isSub = location.pathname.includes("/simple/");
+  const basePath = isSub ? "../" : "";
   const json = async url => { const r = await realFetch(url); if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`); return r.json(); };
-  const data = name => json(`data/${name}?t=${Math.floor(Date.now() / 60000)}`);     // one-minute cache-buster
+  const data = name => json(`${basePath}data/${name}?t=${Math.floor(Date.now() / 60000)}`);     // one-minute cache-buster
   const reply = obj => new Response(JSON.stringify(obj), {status: 200, headers: {"Content-Type": "application/json"}});
   const bp = (a, b) => (a / b - 1) * 1e4;
 
@@ -74,7 +76,10 @@
   const fix = a => {
     const h = a.getAttribute("href");
     if (!h || !h.startsWith("/")) return;
-    a.setAttribute("href", h === "/advisor" ? "advisor.html" : h === "/breakout" ? "breakout.html" : h === "/deploy" ? "deploy.html" : h === "/signals" ? "signals.html" : h === "/simple" ? "simple.html" : h === "/options" ? "index.html" : `index.html#${h}`);
+    const isSub = location.pathname.includes("/simple/");
+    let target = h === "/advisor" ? "advisor.html" : h === "/breakout" ? "breakout.html" : h === "/deploy" ? "deploy.html" : h === "/signals" ? "signals.html" : h === "/simple" ? "simple.html" : h === "/options" ? "index.html" : `index.html#${h}`;
+    if (isSub) target = h === "/simple" ? "./" : `../${target}`;
+    a.setAttribute("href", target);
   };
   const fixAll = root => root.querySelectorAll && root.querySelectorAll('a[href^="/"]').forEach(fix);
   document.addEventListener("DOMContentLoaded", () => {
@@ -93,5 +98,5 @@
     setInterval(age, 60000);
     document.body.prepend(bar);
   });
-  if (!/(advisor|breakout|deploy|signals|simple)\.html$/.test(location.pathname)) window.addEventListener("hashchange", () => location.reload());   // the portfolio page reads its route once
+  if (!/(advisor|breakout|deploy|signals|simple)\.html$/.test(location.pathname) && !location.pathname.endsWith("/simple/")) window.addEventListener("hashchange", () => location.reload());   // the portfolio page reads its route once
 })();

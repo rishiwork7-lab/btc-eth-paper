@@ -64,10 +64,13 @@ def serve(engine, port: int, books=None, advisor=None):
                 return self._send(200, OPT_HTML.read_bytes(), "text/html; charset=utf-8")
             if self.path in ("/signals", "/signals/"):
                 return self._send(200, SIG_HTML.read_bytes(), "text/html; charset=utf-8")
-            if self.path in ("/simple", "/simple/"):
+            if self.path in ("/simple", "/simple/", "/simple/index.html"):
                 return self._send(200, SIM_HTML.read_bytes(), "text/html; charset=utf-8")
-            if self.path == "/signals_core.js":
+            if self.path in ("/signals_core.js", "/simple/signals_core.js"):
                 return self._send(200, SIG_JS.read_bytes(), "text/javascript; charset=utf-8")
+            if self.path in ("/static.js", "/simple/static.js"):
+                stat_js = engine.root / "static.js"
+                return self._send(200, stat_js.read_bytes(), "text/javascript; charset=utf-8") if stat_js.exists() else self._send(404, b'// not found', "text/javascript")
             if self.path in ("/deploy", "/deploy/"):
                 return self._send(200, DEP_HTML.read_bytes(), "text/html; charset=utf-8")
             if self.path.startswith("/api/deploy"):

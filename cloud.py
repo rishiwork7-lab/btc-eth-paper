@@ -92,7 +92,9 @@ def build_site(eng: Engine, books: list, adv: Advisor, run_note: str):
         html = (ROOT / "scalper" / src).read_text()
         p.write_text(html.replace("<head>\n", "<head>\n" + inject, 1))
     shutil.copy(ROOT / "static.js", SITE / "static.js")
+    shutil.copy(ROOT / "static.js", SITE / "simple" / "static.js")
     shutil.copy(ROOT / "scalper" / "signals_core.js", SITE / "signals_core.js")   # signals.html computes in the browser
+    shutil.copy(ROOT / "scalper" / "signals_core.js", SITE / "simple" / "signals_core.js")
     (SITE / ".nojekyll").write_text("")
 
     def put(name, obj):
@@ -107,6 +109,7 @@ def build_site(eng: Engine, books: list, adv: Advisor, run_note: str):
         put(f"trades_{s}.json", adv.trades(s))
         put(f"chart_{s}.json", adv.trades(s, shadow=True))
     put("status.json", meta)
+    shutil.copytree(SITE / "data", SITE / "simple" / "data", dirs_exist_ok=True)
 
 
 def main():
