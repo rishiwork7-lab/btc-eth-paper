@@ -74,7 +74,7 @@
   const fix = a => {
     const h = a.getAttribute("href");
     if (!h || !h.startsWith("/")) return;
-    a.setAttribute("href", h === "/advisor" ? "advisor.html" : h === "/breakout" ? "breakout.html" : h === "/deploy" ? "deploy.html" : h === "/signals" ? "signals.html" : h === "/options" ? "index.html" : `index.html#${h}`);
+    a.setAttribute("href", h === "/advisor" ? "advisor.html" : h === "/breakout" ? "breakout.html" : h === "/deploy" ? "deploy.html" : h === "/signals" ? "signals.html" : h === "/simple" ? "simple.html" : h === "/options" ? "index.html" : `index.html#${h}`);
   };
   const fixAll = root => root.querySelectorAll && root.querySelectorAll('a[href^="/"]').forEach(fix);
   document.addEventListener("DOMContentLoaded", () => {
@@ -93,5 +93,5 @@
     setInterval(age, 60000);
     document.body.prepend(bar);
   });
-  if (!/(advisor|breakout|deploy|signals)\.html$/.test(location.pathname)) window.addEventListener("hashchange", () => location.reload());   // the portfolio page reads its route once
+  if (!/(advisor|breakout|deploy|signals|simple)\.html$/.test(location.pathname)) window.addEventListener("hashchange", () => location.reload());   // the portfolio page reads its route once
 })();

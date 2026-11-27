@@ -78,9 +78,19 @@ def build_site(eng: Engine, books: list, adv: Advisor, run_note: str):
     now = time.time()
     meta = {"updated": int(now), "updated_utc": utc(now) + " UTC", "note": run_note}
     inject = f'<script>window.STATIC_SITE = {json.dumps(meta)};</script>\n<script src="static.js"></script>\n'
-    for src, dst in (("options.html", "index.html"), ("advisor.html", "advisor.html"), ("breakout.html", "breakout.html"), ("deploy.html", "deploy.html"), ("signals.html", "signals.html")):
+    for src, dst in (
+        ("options.html", "index.html"),
+        ("advisor.html", "advisor.html"),
+        ("breakout.html", "breakout.html"),
+        ("deploy.html", "deploy.html"),
+        ("signals.html", "signals.html"),
+        ("simple.html", "simple.html"),
+        ("simple.html", "simple/index.html"),
+    ):
+        p = SITE / dst
+        p.parent.mkdir(parents=True, exist_ok=True)
         html = (ROOT / "scalper" / src).read_text()
-        (SITE / dst).write_text(html.replace("<head>\n", "<head>\n" + inject, 1))
+        p.write_text(html.replace("<head>\n", "<head>\n" + inject, 1))
     shutil.copy(ROOT / "static.js", SITE / "static.js")
     shutil.copy(ROOT / "scalper" / "signals_core.js", SITE / "signals_core.js")   # signals.html computes in the browser
     (SITE / ".nojekyll").write_text("")

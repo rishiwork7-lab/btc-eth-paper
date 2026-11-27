@@ -16,6 +16,7 @@ DEP_HTML = Path(__file__).with_name("deploy.html")
 DEP_JSON = Path(__file__).with_name("deploy.json")   # build_deploy.py
 SIG_HTML = Path(__file__).with_name("signals.html")
 SIG_JS = Path(__file__).with_name("signals_core.js")
+SIM_HTML = Path(__file__).with_name("simple.html")
 
 
 CANDLE_CACHE: dict = {}
@@ -63,6 +64,8 @@ def serve(engine, port: int, books=None, advisor=None):
                 return self._send(200, OPT_HTML.read_bytes(), "text/html; charset=utf-8")
             if self.path in ("/signals", "/signals/"):
                 return self._send(200, SIG_HTML.read_bytes(), "text/html; charset=utf-8")
+            if self.path in ("/simple", "/simple/"):
+                return self._send(200, SIM_HTML.read_bytes(), "text/html; charset=utf-8")
             if self.path == "/signals_core.js":
                 return self._send(200, SIG_JS.read_bytes(), "text/javascript; charset=utf-8")
             if self.path in ("/deploy", "/deploy/"):
